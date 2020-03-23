@@ -1,3 +1,4 @@
+use_module(library(quintus)).
 %http://www.pathwayslms.com/swipltuts/dcg/
 %https://www.metalevel.at/prolog/dcg
 %http://kti.mff.cuni.cz/~bartak/prolog/lists.html
@@ -8,34 +9,48 @@ as --> [].
  
 as --> [a]; [a], [b], as.
  
+out_order(nil) --> [].
 tree_nodes(nil) --> [].
-tree_nodes(nil) --> [].
-tree_nodes(node(Name, Left, Right)) -->
-        tree_nodes(Left),
+out_order(node(Name, Left, Right)) --> %use this for 12+4/6. appends to list in out-order, therefor, exectuion should begin backwards - frm end of list to begining
+        out_order(Right),
         [Name],
-        tree_nodes(Right).
+        out_order(Left).
 
-
+in_order(nil) --> [].		
+in_order(node(Name, Left, Right)) --> %%(12+ 4)/6
+        in_order(Left),
+        [Name],
+        in_order(Right).	
 		
-/*tree_nodes(node(Name, Left, Right)) -->
-        tree_nodes(Left),
-        [Name],
-        tree_nodes(Right).
+% phrase(out_order(node('+', node('/', node(6, nil, nil),  node(4, nil, nil)),node(12, nil, nil))), Ns). %12+ 4/6
 
+% phrase(in_order(node('/',  node(6, nil, nil),node('+', node(12, nil, nil),  node(4, nil, nil)))), Ns). %(12+ 4)/6
+%alternatively, change around the children trees.
+% phrase(out_order(node('/', node('+', node(4, nil, nil), node(12, nil, nil)), node(6, nil, nil))), Ns).
 
-out_order(node(Name, Left, Right)) -->
-        tree_nodes(Right),
-        [Name],
-        tree_nodes(Left).
-
+/*
 		
-		phrase(tree_nodes(node(a, node(b, nil,  node(c, nil, nil)), 	node(d, nil, nil))), Ns).
-		phrase(tree_nodes(node(a, node(b, nil,  node(c, nil, nil)), 	node(d, nil, nil))), Ns).
-		 
-Ns = [b, c, a, d].
+ 
+
+
+lower_case --> 
+	[Letter],
+	{	Letter @>='a',
+		Letter @=<'z'}.
+term(atom) -->
+	lower_case, remaining_terms.
+	
+remaining_terms --> 
+	(lower_case;
+	upper_case;
+	under_score;
+	digit),
+	remaining_terms.
+	
+remaining_terms -->
+	[].
 */
-% phrase(tree_nodes(node(/, node(+, 12,  2), 6, Ns).
-% phrase(tree_nodes(node(+, 12, node(/, 4,  6), Ns).
+%https://vimeo.com/53104831	
 
 cliche -->
     thing,
@@ -48,13 +63,27 @@ thing --> "Cygwin".
 type_of_thing --> "Unix OS".
 opposite_type_of_thing --> "Windows'".
 
+%check_arg(arg) --> 
+
+
  fizz_buzz(Msg) --> anything, fizz(Msg), anything, buzz, anything.
 anything --> [].
 anything --> [_], anything.
 fizz(Msg) -->
-    "fizz",
+   "fizz",
     {
         format('At fizz we have Msg=~w~n', [Msg])
     }.
 buzz -->
     "buzz".
+
+	
+%	Grammar rules.
+
+operator("+")--> ["+"].
+operator("-")--> ["-"].
+operator("*")--> ["*"].
+operator("/")--> ["/"].
+
+
+ 
