@@ -10,7 +10,7 @@ as --> [].
 as --> [a]; [a], [b], as.
  
 out_order(nil) --> [].
-tree_nodes(nil) --> [].
+out_order(nil) --> [].
 out_order(node(Name, Left, Right)) --> %use this for 12+4/6. appends to list in out-order, therefor, exectuion should begin backwards - frm end of list to begining
         out_order(Right),
         [Name],
@@ -28,8 +28,118 @@ in_order(node(Name, Left, Right)) --> %%(12+ 4)/6
 %alternatively, change around the children trees.
 % phrase(out_order(node('/', node('+', node(4, nil, nil), node(12, nil, nil)), node(6, nil, nil))), Ns).
 
-/*
+tree_nodes(nil) --> [].
+tree_nodes(node(Name, Left, Right)) -->
+        tree_nodes(Left),
+        [Name],
+        tree_nodes(Right).
 		
+
+
+sentence(S) :-
+  nounphrase(S-S1),
+  verbphrase(S1-[]).
+
+ 
+
+nounphrase(NP-X):-
+  determiner(NP-S1),
+  nounexpression(S1-X).
+nounphrase(NP-X):-
+  nounexpression(NP-X).
+
+nounexpression(NE-X):-
+  noun(NE-X).
+nounexpression(NE-X):-
+  adjective(NE-S1),
+  nounexpression(S1-X).
+
+verbphrase(VP-X):-
+  verb(VP-S1),
+  nounphrase(S1-X).
+
+determiner([the|X]-X).
+determiner([a|X]-X).  
+noun([dog|X]-X).
+noun([cat|X]-X).
+noun([mouse|X]-X).
+
+verb([ate|X]-X).
+verb([chases|X]-X).
+
+adjective([big|X]-X).
+adjective([brown|X]-X).
+adjective([lazy|X]-X).
+
+command(OutputList, InputList).
+command([V], InList):- verb(V, InList-[]).
+
+command([V,O], InList) :-
+  verb(Object_Type, V, InList-S1),
+  object(Object_Type, O, S1-[]).
+  
+verb(look, [look|X]-X).% :-  format('X=~w~n', [X]).
+verb(look, [look,around|X]-X).
+verb(list_possessions, [inventory|X]-X).
+verb(end, [end|X]-X).
+verb(end, [quit|X]-X).
+verb(end, [good,bye|X]-X).
+
+verb(place, goto, [X|Y]-[X|Y]):- room(X).
+verb(place, goto, [dining,room|Y]-[dining,room|Y]).
+
+verb(place, goto, [go,to|X]-X).
+verb(place, goto, [go|X]-X).
+verb(place, goto, [move,to|X]-X).
+
+verb(thing, take, [take|X]-X).
+verb(thing, drop, [drop|X]-X).
+verb(thing, drop, [put|X]-X).
+verb(thing, turn_on, [turn,on|X]-X).
+
+object(Type, N, S1-S3) :-
+  det(S1-S2),
+  noun(Type, N, S2-S3).
+object(Type, N, S1-S2) :-
+  noun(Type, N, S1-S2).
+
+
+  
+noun(place, R, [R|X]-X):- room(R).
+noun(place, 'dining room', [dining,room|X]-X).
+
+noun(thing, T, [T|_]-X):- location(T,_).%try  command(X,[drop,at,office,space]).
+noun(thing, T, [T|X]-X):- have(T).
+
+noun(thing, light, [light|X]-X).
+noun(thing, 'washing machine', [washing,machine|X]-X).
+noun(thing, flashlight, [light|X]-X):- have(flashlight).
+
+det([the|X]- X).
+det([a|X]-X).
+det([an|X]-X).
+det([at|X]-X).
+det([to|X]-X).
+
+room(X):- X = office.
+room(X):- X = 'dining room'.
+room(kitchen).
+%location(T,_) :- T = office.
+location(office,_).
+have(T) :- T = apple.
+/*
+sentence --> nounphrase, verbphrase.
+nounphrase --> determiner, nounexpression.
+nounphrase --> nounexpression.
+nounexpression --> noun.
+nounexpression --> adjective, nounexpression.
+
+verbphrase --> verb, nounphrase.
+
+determiner --> the ; a.
+noun --> dog ; bone ; mouse ; cat.
+verb --> ate ; chases.
+adjective --> big ; brown ; lazy.			
  
 
 
