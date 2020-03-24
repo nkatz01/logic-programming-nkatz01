@@ -1,10 +1,15 @@
-use_module(library(quintus)).
+:- use_module(library(tokenize)).
+%use_module(library(quintus)).
 %http://www.pathwayslms.com/swipltuts/dcg/
 %https://www.metalevel.at/prolog/dcg
 %http://kti.mff.cuni.cz/~bartak/prolog/lists.html
 %https://ciao-lang.org/ciao/build/doc/ciao.html/dcg_doc.html
 %https://github.com/iqhash/interpreters/blob/master/c-in-prolog/interpreter.pl
 %https://github.com/triska/lisprolog
+
+   
+   use_module(library(tokenize)).
+:- use_module(library(dcg/basics), [eos//0, number//1]).
 as --> [].
  
 as --> [a]; [a], [b], as.
@@ -50,6 +55,7 @@ nounphrase(NP-X):-
 
 nounexpression(NE-X):-
   noun(NE-X).
+  
 nounexpression(NE-X):-
   adjective(NE-S1),
   nounexpression(S1-X).
@@ -127,6 +133,43 @@ room(kitchen).
 %location(T,_) :- T = office.
 location(office,_).
 have(T) :- T = apple.
+
+ 
+%read a line of words from the user
+
+read_list(L) :-
+  write('> '),
+  read_line(CL),
+  wordlist(L,CL,[]), !.
+
+read_line(L) :-
+  get(C),
+  buildlist(C,L).
+
+buildlist(13,[]) :- !.
+buildlist(C,[C|X]) :-
+  get(C2),
+  buildlist(C2,X).
+ 
+wordlist([X|Y]) --> word(X), whitespace, wordlist(Y).
+wordlist([X]) --> whitespace, wordlist(X).
+wordlist([X]) --> word(X).
+wordlist([X]) --> word(X), whitespace.
+
+word(W) --> charlist(X), {name(W,X)}.
+
+charlist([X|Y]) --> chr(X), charlist(Y).
+charlist([X]) --> chr(X).
+
+chr(X) --> [X],{X>=48}.
+
+whitespace --> whsp, whitespace.
+whitespace --> whsp.
+
+whsp --> [X], {X<48}.
+
+ope(42,X,Y,R) :- R is X * Y.
+
 /*
 sentence --> nounphrase, verbphrase.
 nounphrase --> determiner, nounexpression.
