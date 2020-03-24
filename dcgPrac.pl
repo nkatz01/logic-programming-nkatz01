@@ -135,40 +135,13 @@ location(office,_).
 have(T) :- T = apple.
 
  
-%read a line of words from the user
-
-read_list(L) :-
-  write('> '),
-  read_line(CL),
-  wordlist(L,CL,[]), !.
-
-read_line(L) :-
-  get(C),
-  buildlist(C,L).
-
-buildlist(13,[]) :- !.
-buildlist(C,[C|X]) :-
-  get(C2),
-  buildlist(C2,X).
  
-wordlist([X|Y]) --> word(X), whitespace, wordlist(Y).
-wordlist([X]) --> whitespace, wordlist(X).
-wordlist([X]) --> word(X).
-wordlist([X]) --> word(X), whitespace.
-
-word(W) --> charlist(X), {name(W,X)}.
-
-charlist([X|Y]) --> chr(X), charlist(Y).
-charlist([X]) --> chr(X).
-
-chr(X) --> [X],{X>=48}.
-
-whitespace --> whsp, whitespace.
-whitespace --> whsp.
-
-whsp --> [X], {X<48}.
+ 
+ 
 
 ope(42,X,Y,R) :- R is X * Y.
+
+
 
 /*
 sentence --> nounphrase, verbphrase.
