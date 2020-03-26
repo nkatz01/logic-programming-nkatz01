@@ -7,37 +7,14 @@
 %https://github.com/iqhash/interpreters/blob/master/c-in-prolog/interpreter.pl
 %https://github.com/triska/lisprolog
 
-   
-   use_module(library(tokenize)).
+  :- use_module(library(clpfd)). 
+ :-  use_module(library(tokenize)).
 :- use_module(library(dcg/basics), [eos//0, number//1]).
 as --> [].
  
 as --> [a]; [a], [b], as.
  
-out_order(nil) --> [].
-out_order(nil) --> [].
-out_order(node(Name, Left, Right)) --> %use this for 12+4/6. appends to list in out-order, therefor, exectuion should begin backwards - frm end of list to begining
-        out_order(Right),
-        [Name],
-        out_order(Left).
 
-in_order(nil) --> [].		
-in_order(node(Name, Left, Right)) --> %%(12+ 4)/6
-        in_order(Left),
-        [Name],
-        in_order(Right).	
-		
-% phrase(out_order(node('+', node('/', node(6, nil, nil),  node(4, nil, nil)),node(12, nil, nil))), Ns). %12+ 4/6
-
-% phrase(in_order(node('/',  node(6, nil, nil),node('+', node(12, nil, nil),  node(4, nil, nil)))), Ns). %(12+ 4)/6
-%alternatively, change around the children trees.
-% phrase(out_order(node('/', node('+', node(4, nil, nil), node(12, nil, nil)), node(6, nil, nil))), Ns).
-
-tree_nodes(nil) --> [].
-tree_nodes(node(Name, Left, Right)) -->
-        tree_nodes(Left),
-        [Name],
-        tree_nodes(Right).
 		
 
 
@@ -178,34 +155,69 @@ remaining_terms -->
 */
 %https://vimeo.com/53104831	
 
-cliche -->
-    thing,
-    " is a ",
-    type_of_thing,
-    " trapped in a ",
-    opposite_type_of_thing,
-    " body.".
-thing --> "Cygwin".
-type_of_thing --> "Unix OS".
-opposite_type_of_thing --> "Windows'".
+beep_boop --> anything, beep(Suffix), anything, boop(Suffix), anything.
 
-%check_arg(arg) --> 
+beep(X) -->
+    "beep",
+    suffix(X).
 
+boop(X) -->
+    "boop",
+    suffix(X).
 
- fizz_buzz(Msg) --> anything, fizz(Msg), anything, buzz, anything.
+suffix([H|T]) -->
+      [H],
+      { 
+		 
+          code_type(H, digit)
+      },
+      suffix(T).
+suffix([]) --> []. % must be 2nd suffix clause, or the digits wind up in anything
+% At bottom for efficiency. At the top, would match beep first
 anything --> [].
 anything --> [_], anything.
-fizz(Msg) -->
-   "fizz",
-    {
-        format('At fizz we have Msg=~w~n', [Msg])
-    }.
-buzz -->
-    "buzz".
 
+% A subtlety here.  "foo 7 beep1 bar boop14 fdds" is part of the language
+%
+try_beep_boop :- member(X, [
+                        `sdfdsbeepsldfkboop24sldfk`,
+                        `sdfdsbeep24sldfkbeep14dfk`,
+                        `beepboop`,
+                        `beep`,
+                        `beep233536464647boop`,
+                        `         beep  boop`]),
+                 (   phrase(beep_boop, X)
+                 ->  format('\"~s\" is a beepboop~n', [X])
+                 ;   format('\"~s\" is not~n', [X])
+                 ),
+                 fail.
 	
 %	Grammar rules.
+out_order(nil) --> [].
+out_order(nil) --> [].
+out_order(node(Name, Left, Right)) --> %use this for 12+4/6. appends to list in out-order, therefor, exectuion should begin backwards - frm end of list to begining
+        out_order(Right),
+        [Name],
+        out_order(Left).
 
+in_order(nil) --> [].		
+in_order(node(Name, Left, Right)) --> %%(12+ 4)/6
+        in_order(Left),
+        [Name],
+        in_order(Right).	
+		
+% phrase(out_order(node('+', node('/', node(6, nil, nil),  node(4, nil, nil)),node(12, nil, nil))), Ns). %12+ 4/6
+
+% phrase(in_order(node('/',  node(6, nil, nil),node('+', node(12, nil, nil),  node(4, nil, nil)))), Ns). %(12+ 4)/6
+%alternatively, change around the children trees.
+% phrase(out_order(node('/', node('+', node(4, nil, nil), node(12, nil, nil)), node(6, nil, nil))), Ns).
+
+tree_nodes(nil) --> [].
+tree_nodes(node(Name, Left, Right)) -->
+        tree_nodes(Left),
+        [Name],
+        tree_nodes(Right).
+		
 operator("+")--> ["+"].
 operator("-")--> ["-"].
 operator("*")--> ["*"].
