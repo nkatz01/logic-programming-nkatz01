@@ -12,3 +12,12 @@ tokenize_file('/mmExamples/example1.cmm', Tokens, [cased(true), spaces(false)]).
 
 %also works
 tokenize(`4 * 3 - 7 asdfdsf`, Tokens, [cased(true), spaces(false)]),Tokens = [A|T],functor(A,Name,NoOfParams),Name==number, arg(1,A,Int).
+
+ node(program, nill, node(
+							node(assign, node(number, nill, nill), node(100, nill, nill)), nill, [])).
+
+statement(print(statements([W|Ww])))  --> [word(print)] -> [word(W)],  statement(Ww).						 	
+statement([W|Ww]) --> [punct(,)] -> [word(W)], statement(Ww).
+statement([W|Ww]) --> [punct(,)] -> [word(W)],rest_statements(Ww).
+
+program(print(statements([['I', will|4]])), program(assign(id(number), number(100)), program(print(statements([[laugh, in|class]])), []))),

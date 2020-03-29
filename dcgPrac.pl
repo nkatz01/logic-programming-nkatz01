@@ -213,11 +213,18 @@ in_order(node(Name, Left, Right)) --> %%(12+ 4)/6
 % phrase(out_order(node('/', node('+', node(4, nil, nil), node(12, nil, nil)), node(6, nil, nil))), Ns).
 
 tree_nodes(nil) --> [].
-tree_nodes(node(Name, Left, Right)) -->
-        tree_nodes(Left),
-        [Name],
-        tree_nodes(Right).
+tree_nodes(node(Name, Left, Right)) --> tree_nodes(Left), [Name], tree_nodes(Right).
+
+tree_nodes(nil, Ls, Ls) --> [].
+tree_nodes(node(Name, Left, Right), [_|Ls0], Ls) -->   tree_nodes(Left, Ls0, Ls1), [Name], tree_nodes(Right, Ls1, Ls).
+
+useTree(Tree) :- phrase(tree_nodes(node(a, node(b, nil,node(c, nil, nil)),node(d, nil, nil))), Ns).
+							 
+whichTree(Tree) :- phrase(tree_nodes(Tree), [a,b,c,d]).		
 		
+		/*node(a, 																)
+				node(b,	 						)	,  node(d, 				)
+						nil, node(c, nil, nil)					nil, nil		*/
 operator("+")--> ["+"].
 operator("-")--> ["-"].
 operator("*")--> ["*"].

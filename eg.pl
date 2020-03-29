@@ -106,7 +106,7 @@ rest_statements((S;Ss))    --> [";"], statement(S), rest_statements(Ss).
 rest_statements(void)      --> ["end"].
 
 expression(X)              --> pl_constant(X).
-expression(expr(Op, X, Y)) --> pl_constant(X), arithmetic_op(Op), expression(Y).
+expression(expr(Op, X, Y)) --> pl_constant(X), arithmetic_op(Op),    expression(Y).
 
 arithmetic_op("+")         --> ["+"].
 arithmetic_op("-")         --> ["-"].
