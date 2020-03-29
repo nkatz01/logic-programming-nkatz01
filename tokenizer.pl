@@ -21,3 +21,5 @@ statement([W|Ww]) --> [punct(,)] -> [word(W)], statement(Ww).
 statement([W|Ww]) --> [punct(,)] -> [word(W)],rest_statements(Ww).
 
 program(print(statements([['I', will|4]])), program(assign(id(number), number(100)), program(print(statements([[laugh, in|class]])), []))),
+
+expr(((+), 3), expr(/, number(12), number(4)), number(6))) 

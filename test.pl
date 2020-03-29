@@ -44,15 +44,16 @@ rest_statements((S, Ss))    -->   statement(S), rest_statements(Ss).
 rest_statements([])  --> [].
 
 
+expression(expr(O2,expr(O, X, Z),Y)) --> pl_constant(X), arithmetic_op(Op),  {Op = (O,4)}, pl_constant(Z),  arithmetic_op(Op2) ,{Op2 = (O2,Whatever)} , expression(Y).
 
-expression((X,expr(O, Y))) --> pl_constant(X), arithmetic_op(Op), {Op = (O,3)},expression(Y).
-expression((expr(O, X, Y))) --> pl_constant(X), arithmetic_op(Op), {Op = (O,4)},expression(Y).
+%expression((X,expr(O, Y))) -->  arithmetic_op(Op), {Op = (O,3)},expression(Y).
+%expression((X,expr(O, Y))) --> pl_constant(X), arithmetic_op(Op), {Op = (O,4)},expression(Y).
 expression(X)              --> pl_constant(X).
 
 %if current op is high precedence and we receive from low precendence 
-rest_expression(expr(O, X, NewY)) --> expression(Y), Y = (X,NewY).
+%rest_expression(expr(O, X, NewY)) --> expression(Y), Y = (X,NewY).
 %if current op is low precedence and we receive from low precendence 
-rest_expression(expr(O, X, NewY)) --> expression(Y), Y = (X,NewY).
+%rest_expression(expr(O, X, NewY)) --> expression(Y), Y = (X,NewY).
 
 arithmetic_op((+,3))         --> [punct(+)].
 arithmetic_op((-,3))         --> [punct(-)].
