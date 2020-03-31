@@ -89,7 +89,6 @@ multiplicative_rest(N1,N) --> [*], !, atomic(N2), {N3 is N1*N2}, multiplicative_
 multiplicative_rest(N,N) --> [].
 atomic(N) --> ['('], !, expre(N), [')'];
      num(N). 
-
 num(N) --> [N], {number(N)}.
 
 
