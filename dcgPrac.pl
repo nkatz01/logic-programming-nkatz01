@@ -195,7 +195,6 @@ try_beep_boop :- member(X, [
 %	Grammar rules.
 out_order(nil) --> [].
 out_order(nil) --> [].
-out_order(node(Name, Left, Right)) --> %use this for 12+4/6. appends to list in out-order, therefor, exectuion should begin backwards - frm end of list to begining
         out_order(Right),
         [Name],
         out_order(Left).
@@ -212,19 +211,22 @@ in_order(node(Name, Left, Right)) --> %%(12+ 4)/6
 %alternatively, change around the children trees.
 % phrase(out_order(node('/', node('+', node(4, nil, nil), node(12, nil, nil)), node(6, nil, nil))), Ns).
 
-tree_nodes(nil) --> [].
-tree_nodes(node(Name, Left, Right)) --> tree_nodes(Left), [Name], tree_nodes(Right).
+/**/
+tree_nodes(nill) --> [].
+tree_nodes(node(Name, Left, Right)) -->  tree_nodes(Left),   [Name],   tree_nodes(Right).	
+	
 
-tree_nodes(nil, Ls, Ls) --> [].
-tree_nodes(node(Name, Left, Right), [_|Ls0], Ls) -->   tree_nodes(Left, Ls0, Ls1), [Name], tree_nodes(Right, Ls1, Ls).
-
-useTree(Tree) :- phrase(tree_nodes(node(a, node(b, nil,node(c, nil, nil)),node(d, nil, nil))), Ns).
-							 
-whichTree(Tree) :- phrase(tree_nodes(Tree), [a,b,c,d]).		
-		
-		/*node(a, 																)
-				node(b,	 						)	,  node(d, 				)
-						nil, node(c, nil, nil)					nil, nil		*/
+mytree0(Tree,Rest) :- phrase(tree_nodes(node(a, node(v, nill, nill), nill)),Tree).
+mytree1(Ns) :- phrase(tree_nodes(node(a, 
+										node(b, 
+												nil,  
+												node(c, 
+													nil, 
+													nil)), 
+										node(d, 
+												nil, 
+												nil))), Ns).
+  
 operator("+")--> ["+"].
 operator("-")--> ["-"].
 operator("*")--> ["*"].

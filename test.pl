@@ -13,9 +13,9 @@ k = k + 1
 my_tokenize(Str,Tokens):-
 tokenize(Str, Tokens, [cased(true), spaces(false)]).
 
-runDef(Tokens,Ast) :- my_tokenize('program factorial; begin read value; count := 1; result := 1; while count < value do begin count \n := count + 1; result := result * count end; write result end',Tokens) ,parse(Tokens, Ast,Rest).
+runDef(Tokens,Ast,Rest) :- my_tokenize('program factorial; begin read value; count := 1; result := 1; while count < value do begin count \n := count + 1; result := result * count end; write result end',Tokens) ,parse(Tokens, Ast,Rest).
 
-runDef1(Tokens,Ast,Rest) :- my_tokenize('number = 12 / 4 + 6',Tokens) ,parse(Tokens, Ast,Rest).
+runDef1(Tokens,Ast,Rest) :- my_tokenize('number = 4 + 6 / 2 * 12 - 5',Tokens) ,parse(Tokens, Ast,Rest).
 %runPhar(Tokens,Ast,Rest) :- my_tokenize('(12+ 4)/6',Tokens),parse(Tokens, Ast,Rest) .
 
 parse(Tokens, Ast,Rest) :-
@@ -44,24 +44,14 @@ rest_statements((S, Ss))    -->   statement(S), rest_statements(Ss).
 rest_statements([])  --> [].
 
 
-expression(expr(O2,expr(O, X, Z),Y)) --> pl_constant(X), arithmetic_op(Op),  {Op = (O,4)}, pl_constant(Z),  arithmetic_op(Op2) ,{Op2 = (O2,Whatever)} , expression(Y).
-
-%expression((X,expr(O, Y))) -->  arithmetic_op(Op), {Op = (O,3)},expression(Y).
-%expression((X,expr(O, Y))) --> pl_constant(X), arithmetic_op(Op), {Op = (O,4)},expression(Y).
+expression(expr(Op, X, Y)) --> pl_constant(X), arithmetic_op(Op), expression(Y).
 expression(X)              --> pl_constant(X).
 
-%if current op is high precedence and we receive from low precendence 
-%rest_expression(expr(O, X, NewY)) --> expression(Y), Y = (X,NewY).
-%if current op is low precedence and we receive from low precendence 
-%rest_expression(expr(O, X, NewY)) --> expression(Y), Y = (X,NewY).
-
-arithmetic_op((+,3))         --> [punct(+)].
-arithmetic_op((-,3))         --> [punct(-)].
-arithmetic_op((*,4))         --> [punct(*)].
-arithmetic_op((/,4))         --> [punct(/)].
-arithmetic_op((mod,4))         --> [punct('%')].
-
-
+arithmetic_op(+)         --> [punct(+)].
+arithmetic_op(-)         --> [punct(-)].
+arithmetic_op(*)         --> [punct(*)].
+arithmetic_op(/)         --> [punct(/)].
+arithmetic_op(mod)         --> [punct('%')].
 
 pl_constant(number(X))     --> pl_integer(X), !. % Moved up with cut to avoid numbers appearing as name('1')
 pl_constant(id(X))       --> identifier(X).
@@ -77,7 +67,47 @@ comparison_op(">")         --> [">"].
 comparison_op("<")         --> ["<"].
 comparison_op(">=")        --> [">","="].
 comparison_op("<=")        --> ["<","="].
-/*  
+
+
+runEval(ExprTree,ExprLs,Results,Rest) :- myeval(ExprTree,Ans),
+flatten(Ans,ExprLs),  
+phrase(expre(Results), ExprLs,Rest).
+
+
+myeval(expr(Op,number(N1),number(N2)),[N1,Op, N2]).
+myeval(expr(Op,number(N),Expr),Ans) :-  Ans = [N,Op, Ls], myeval(Expr,Ls).
+
+
+
+expre(N) --> multiplicative(N1), additive_rest(N1,N).%https://stackoverflow.com/questions/7543100/grammar-involving-braces
+additive_rest(N1,N) --> [+], !, multiplicative(N2), {N3 is N1+N2}, additive_rest(N3,N);
+                [-], !, multiplicative(N2), {N3 is N1-N2}, additive_rest(N3,N).
+additive_rest(N,N) --> [].
+multiplicative(N) --> atomic(N1), multiplicative_rest(N1,N).
+multiplicative_rest(N1,N) --> [*], !, atomic(N2), {N3 is N1*N2}, multiplicative_rest(N3,N);
+                [/], !, atomic(N2), {N3 is N1/N2}, multiplicative_rest(N3,N).
+multiplicative_rest(N,N) --> [].
+atomic(N) --> ['('], !, expre(N), [')'];
+     num(N). 
+
+num(N) --> [N], {number(N)}.
+
+
+%phrase(expre(Z), [6,+,12,/,2]). not working
+/* 
+%driveEval(Ans) :- myeval(expr(+, number(4), expr(/, number(6), number(2))),Ans).
+%expr(+, number(4), expr(/, number(6), expr(*, number(2), expr(-, number(12), number(5)))))
+
+%expr(+, number(4), expr(/, number(6), number(2)))
+
+ 
+out_order(X) --> [expr(Op,L,R)], Ans = L Op out_order(R).
+out_order(nil) -->  .
+        out_order(Right),
+        [Name],
+        out_order(Left).
+
+
 
 
 %statement([Ss])  -->   statement(Ss).%,  rest_statements(Ss).
