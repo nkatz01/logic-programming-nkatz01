@@ -15,7 +15,7 @@ tokenize(Str, Tokens, [cased(true), spaces(false)]).
 
 runDef(Tokens,Ast,Rest) :- my_tokenize('program factorial; begin read value; count := 1; result := 1; while count < value do begin count \n := count + 1; result := result * count end; write result end',Tokens) ,parse(Tokens, Ast,Rest).
 %'number = 4 + 6 / 2 * 12 - 5 print lola'
-runDef1(Tokens,Ast,Rest) :- my_tokenize('print nuchem number = 4 + 6 / 2 * 12 - 5 print lola',Tokens) ,parse(Tokens, Ast,Rest).
+runDef1(Tokens,Ast,Rest) :- my_tokenize('4 + 6 / 2 * 12 - 5',Tokens) ,parse(Tokens, Ast,Rest).
 %runPhar(Tokens,Ast,Rest) :- my_tokenize('(12+ 4)/6',Tokens),parse(Tokens, Ast,Rest) .
 
 parse(Tokens, Ast,Rest) :-
@@ -89,10 +89,10 @@ phrase(expre(Results), ExprLs,RestOfEval).
 myeval(expr(Op,number(N1),number(N2)),[N1,Op, N2]).
 myeval(expr(Op,number(N),Expr),Ans) :-  Ans = [N,Op, Ls], myeval(Expr,Ls).
 
-%callExtract(ProgAst,InnerAsts,ConvertedToLsExprs):- ProgAst =.. [H|InnerAsts],  extractExp(InnerAsts,ConvertedToLsExprs).
+callExtract(ProgAst,InnerAsts,ConvertedToLsExprs):- ProgAst =.. [H|InnerAsts],  extractExp(InnerAsts,ConvertedToLsExprs).
 
-extractExp(([]),[]).
-extractExp(InArgs,ConvertedToLsExprs) :- InArgs = [H|T],   H = assign(_,E), myeval(E,ConvertedToLsExprs),!; T =.. [_|Rest],  extractExp(Rest,ConvertedToLsExprs).
+extractExp([],[]).
+extractExp([H|T],ConvertedToLsExprs) :-   H =.. [Functor|Rest],  (Functor == assign, Rest = [Id,E|R], myeval(E,ConvertedToLsExprs)) ; T = [[He|Ta]], write(Ta),   extractExp(T,ConvertedToLsExprs).
 
 
 expre(N) --> multiplicative(N1), additive_rest(N1,N).%https://stackoverflow.com/questions/7543100/grammar-involving-braces

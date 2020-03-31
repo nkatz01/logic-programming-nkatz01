@@ -74,3 +74,54 @@ numb(C) --> [C].
 
 %myeval(expr(Op,number(N1),number(N2)),Ans) :- functor(Op,Name,_),  Ans =.. [Name, N1,N2].
 %myeval(expr(Op,number(N),Expr),Ans) :- functor(Op,Name,_), Ans =..[Name,N, RestAns] , myeval(Expr,RestAns).
+
+%extractExp([[]],[]) :- 
+%extractExp([Ast],Inputls) :- Ast =.. [Functor|InnerAst], (Functor == assign(ID,E), myeval(InnerAst,Inputls) , true); extractExp(InnerAst,Inputls).
+
+runDef1(Tokens,Ast,Rest) :- my_tokenize('number = 4 + 6 / 2 * 12 - 5 print lola',Tokens) ,parse(Tokens, Ast,Rest).
+%runPhar(Tokens,Ast,Rest) :- my_tokenize('(12+ 4)/6',Tokens),parse(Tokens, Ast,Rest) .
+
+parse(Tokens, Ast,Rest) :-
+  pl_program(Ast,Tokens,Rest).
+
+%pl_program(['Program:'|S],Tokens) :- phrase(rest_statements(S),Tokens,Rest),!.%used together with the lists version
+ 
+
+pl_program(S,Tokens,Rest)   :- phrase(rest_statements(S),Tokens,Rest),!.
+
+
+statement(assign(id(X), E)) --> identifier(X) ->  [punct(=)] -> expression(E).
+
+statement(print(statements([W])))  --> [word(print)] -> statement(W).						 	
+statement([W|Ww]) --> [word(W)] ->  [punct(,)] , statement(Ww). 
+statement([N|Ww]) --> [number(N)] -> [punct(,)]    , statement(Ww).
+statement(W) --> [word(W)], statement. 
+statement(N) --> [number(N)], statement. 
+statement --> [].
+%statement([W|Ww]),['}']  --> [punct(,)] -> [word(W)] -> [punct('}')],rest_statements(Ww).
+ 
+
+%statement([W|Ww]),[X]  --> [punct(,)] ,rest_statements(Ww).%-> [word(X)]
+
+
+rest_statements(program(S, Ss))    -->   statement(S), rest_statements(Ss).
+rest_statements([])  --> [].
+
+
+expression(expr(Op, X, Y)) --> pl_constant(X), arithmetic_op(Op), expression(Y).
+expression(X)              --> pl_constant(X).
+
+
+Ast =  (assign(id(number), expr(+, number(4), expr(/, number(6), expr(*, number(2), expr(-, number(12), number(5)))))), print(statements([lola])), [])
+
+
+
+
+
+
+
+
+
+
+
+

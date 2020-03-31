@@ -101,7 +101,6 @@ statement(if(T,S1,S2))     --> ["if"], test(T), ["then"], statement(S1), ["else"
 statement(while(T,S))      --> ["while"], test(T), ["do"], statement(S).
 statement(pl_read(X))      --> ["read"], identifier(X).
 statement(pl_write(X))     --> ["write"], expression(X).
-
 rest_statements((S;Ss))    --> [";"], statement(S), rest_statements(Ss).
 rest_statements(void)      --> ["end"].
 
