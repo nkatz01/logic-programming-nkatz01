@@ -17,7 +17,7 @@ tokenize(Str, Tokens,  [spaces(false), cased(true)]).
 runDef(Tokens,Ast,Rest) :- my_tokenize('program factorial; begin read value; count := 1; result := 1; while count < value do begin count \n := count + 1; result := result * count end; write result end',Tokens) ,parse(Tokens, Ast,Rest).
 %'number = 4 + 6 / 2 * 12 - 5 print lola'; 'number = 4 + 6 / 2 * 12 - 5 eggs = number';'number = 4 if (4 + 6 / 2 * 12 - 5 >= 35) print 1 else print 0 print nuchem'
 %'dozen = 6 eggsneeded = 4 eggsbought = 6 sufficienteggs = eggsbought > dozen || eggsbought >= eggsneeded';'number = 1 || 1 && 1 && 0'
-runDef1(Tokens,Ast,Rest) :- my_tokenize('bool = 1 < 0',Tokens) ,parse(Tokens, Ast,Rest).
+runDef1(Tokens,Ast,Rest) :- my_tokenize('number = 1 || 1 && 1 && 0',Tokens) ,parse(Tokens, Ast,Rest).
 %runPhar(Tokens,Ast,Rest) :- my_tokenize('(12+ 4)/6',Tokens),parse(Tokens, Ast,Rest) .
 
 parse(Tokens, Ast,Rest) :-
@@ -56,30 +56,31 @@ identifier(X)              --> [word(X)].
 %test(compare(Op, X, Y))    --> 	logical_op(Op), expre(Y) ,[punct(')')].
 
 
-test(T) -->  and_expre(E1), or_rest(E1,T). 
+test(T) --> compar_expre(E1), or_rest(E1,T). 
 or_rest(E1,T) -->  [punct('|'),punct('|')],!, and_expre(E2),   {is_one_or_zero(E1,E2), V is \/(E1,E2)}, or_rest(V,T).
 or_rest(T,T) --> [].
 
-and_expre(T) --> compar_expre(E1), and_rest(E1,T).
-and_rest(E1,T) --> [punct(&),punct(&)], !, compar_expre(E2), {is_one_or_zero(E1,E2),V is 	/\(E1,E2)}, and_rest(V,T).
+and_expre(E) --> compar_expre(E1), and_rest(E1,E); equality_expre(E1), and_rest(E1,E). 
+and_rest(E1,T) --> [punct(&),punct(&)], !, compar_expre(E2), {is_one_or_zero(E1,E2),V is 	/\(E1,E2)}, and_rest(V,T);  equality_expre(E2) , !,{is_one_or_zero(E1,E2), V is /\(E1,E2)}, and_rest(V,T).
 and_rest(T,T) --> [].
 
-compar_expre(T) --> atomic(E1), compar_rest(E1,T).%could handle sperately equalitly Ops.
-compar_rest(E1,T) -->  comparison_op(Op) ,!, atomic_texpre(E2) , {Tr  =..[Op,E1,E2],( call(Tr) -> V is 1; V is 0 )},compar_rest(V,T).
-compar_rest(T,T) --> [].
+equality_expre(E) -->   [punct('(')], !, test(E), [punct(')')] ; compar_expre(E1), equality_rest(E1,E).   
+equality_rest(E1,T) --> equality_op(Op) ,!,  compar_expre(E2), {  Tr  =..[Op,E1,E2], (call(Tr) -> V is 1; V is 0)}, equality_rest(V,T).
+equality_rest(T,T) --> [].
 
-atomic_texpre(T) --> [punct('(')], !, test(T), [punct(')')];  	 arith_expre(T).
-arith_expre(V) --> expre(V).
+
+compar_expre(V) -->   expre(E1), comparison_op(Op) ,!, expre(E2) , {Tr  =..[Op,E1,E2],( call(Tr) -> V is 1; V is 0 )}; 		expre(E1), equality_op(Op) ,!, expre(E2) , {Tr  =..[Op,E1,E2],( call(Tr) -> V is 1; V is 0 )};	 expre(V).
+
 
  
 is_one_or_zero(E1,E2) :- (E1 == 1 ,E2 == 0);(E1 == 0, E2 == 1);(E1 == 1 ,E2 == 1);(E1 == 0, E2 == 0).
 opening_paren('(') --> [punct('(')].
 closing_paren(')') --> [punct(')')].
 
-%equality_op(==)         --> [punct(=),punct(=)].
-%equality_op(\=)        --> [punct(!),punct(=)].
-comparison_op(==)         --> [punct(=),punct(=)].%applicable to numbers and bools
-comparison_op(\=)        --> [punct(!),punct(=)].%applicable to numbers and bools
+equality_op(==)         --> [punct(=),punct('=')].
+equality_op(\=)        --> [punct(!),punct('=')].
+%comparison_op('==')         --> [punct(=),punct('=')].%applicable to numbers and bools
+%comparison_op('!=')        --> [punct('!'),punct('=')].%applicable to numbers and bools
 
 
 
@@ -90,8 +91,8 @@ comparison_op(>)         --> [punct(>)].%ONLY applicable to numbers
 comparison_op(=<)        -->  [punct(<),punct(=)].%ONLY applicable to numbers
 comparison_op(<)         --> [punct(<)].%ONLY applicable to numbers
 
-%logical_op('||')        -->  [punct('|'),punct('|')].%NOT applicable to numbers
-%logical_op('&&')        -->  [punct(&),punct(&)].%NOT applicable to numbers
+logical_op('||')        -->  [punct('|'),punct('|')].%NOT applicable to numbers
+logical_op('&&')        -->  [punct(&),punct(&)].%NOT applicable to numbers
 
 %replace_each_existing_fact(OldVar, NewVar) :-
 %forall(replace_existing_fact(OldVar, NewVar), true).
@@ -122,10 +123,8 @@ extractExp((LeftNode,RightTree),ConvertedToLsExprs) :- LeftNode = assign(_,E), m
 
 
 expre(N) --> multiplicative(N1), additive_rest(N1,N).%https://stackoverflow.com/questions/7543100/grammar-involving-braces
-
 additive_rest(N1,N) --> [punct(+)], !, multiplicative(N2), {N3 is N1+N2}, additive_rest(N3,N);   [punct(-)], !, multiplicative(N2), {N3 is N1-N2}, additive_rest(N3,N).
 additive_rest(N,N) --> [].
-
 multiplicative(N) --> atomic(N1), multiplicative_rest(N1,N).
 multiplicative_rest(N1,N) --> [punct(*)], !, atomic(N2), {N3 is N1*N2}, multiplicative_rest(N3,N);	[punct(/)], !, atomic(N2), {N3 is N1/N2}, multiplicative_rest(N3,N);	[punct('%')], !, atomic(N2), {N3 is mod(N1,N2)}, multiplicative_rest(N3,N).
 multiplicative_rest(N,N) --> [].
