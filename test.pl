@@ -14,8 +14,9 @@ my_tokenize(Str,Tokens):-
 tokenize(Str, Tokens, [cased(true), spaces(false)]).
 
 runDef(Tokens,Ast,Rest) :- my_tokenize('program factorial; begin read value; count := 1; result := 1; while count < value do begin count \n := count + 1; result := result * count end; write result end',Tokens) ,parse(Tokens, Ast,Rest).
-%'number = 4 + 6 / 2 * 12 - 5 print lola'
-runDef1(Tokens,Ast,Rest) :- my_tokenize('number = 4 + 6 / 2 * 12 - 5 eggs = number',Tokens) ,parse(Tokens, Ast,Rest).
+%'number = 4 + 6 / 2 * 12 - 5 print lola'; 'number = 4 + 6 / 2 * 12 - 5 eggs = number';'number = 4 if (4 + 6 / 2 * 12 - 5 >= 35) print 1 else print 0 print nuchem'
+
+runDef1(Tokens,Ast,Rest) :- my_tokenize('dozen = 6 eggsneeded = 4 eggsbought = 6 sufficienteggs = eggsbought > dozen || eggsbought >= eggsneeded',Tokens) ,parse(Tokens, Ast,Rest).
 %runPhar(Tokens,Ast,Rest) :- my_tokenize('(12+ 4)/6',Tokens),parse(Tokens, Ast,Rest) .
 
 parse(Tokens, Ast,Rest) :-
@@ -23,11 +24,11 @@ parse(Tokens, Ast,Rest) :-
 
  
 
-pl_program(Ss)   --> rest_statements(Ss).
+pl_program(Ss)   --> rest_statements(Ss). %https://swish.swi-prolog.org/p/Compiler1.swinb
 
 
 statement(assign(id(X), E)) --> identifier(X) ->  [punct(=)] -> expre(E), {replace_existing_fact(id(X,_),id(X,E))}.
-
+statement(if(T,S1,S2))     --> [word(if)], [punct('(')], test(T), [punct(')')], statement(S1), [word(else)], statement(S2).
 statement(print(statements([W])))  --> [word(print)] -> statement(W).						 	
 statement([W|Ww]) --> [word(W)] ->  [punct(,)] , statement(Ww). 
 statement([N|Ww]) --> [number(N)] -> [punct(,)]    , statement(Ww).
@@ -45,36 +46,63 @@ rest_statements([])  --> [].
 
 
 
-arithmetic_op(+)         --> [punct(+)].
-arithmetic_op(-)         --> [punct(-)].
-arithmetic_op(*)         --> [punct(*)].
-arithmetic_op(/)         --> [punct(/)].
-arithmetic_op(mod)         --> [punct('%')].
 
-pl_constant(N)     --> pl_integer(N), !. % Moved up with cut to avoid numbers appearing as name('1')
+pl_constant(N)     --> pl_integer(N), !. %Moved up with cut to avoid numbers appearing as name('1')
 pl_constant(N)       --> identifier(X), {call(id(X,N))}.
 
 pl_integer(X)              --> [number(X)].
 identifier(X)              --> [word(X)].
 
-test(compare(Op, X, Y))    --> expression(X), comparison_op(Op), expression(Y).
+%test(compare(Op, X, Y))    -->  comparison_op(Op), expre(Y) ,.
+%test(compare(Op, X, Y))    --> 	logical_op(Op), expre(Y) ,[punct(')')].
 
-comparison_op("=")         --> ["="].
-comparison_op("!=")        --> ["!","="].
-comparison_op(">")         --> [">"].
-comparison_op("<")         --> ["<"].
-comparison_op(">=")        --> [">","="].
-comparison_op("<=")        --> ["<","="].
 
-replace_each_existing_fact(OldVar, NewVar) :-
-    forall(replace_existing_fact(OldVar, NewVar), true).
+test(T) --> and_expre(E1), or_rest(E1,T). 
+or_rest(E1,T) -->  [punct('|'),punct('|')],!, and_expre(E2),   {V is /\(E1,E2)}, or_rest(V,T).
+or_rest(T,T) --> [].
+
+and_expre(E) --> compar_expre(E1), and_rest(E1,E); equality_expre(E1), and_rest(E1,E). 
+and_rest(E1,T) --> [punct(&),punct(&)], !, compar_expre(E2), {V is \/(E1,E2)}, and_rest(V,T);  equality_expre(E2) , !,{V is \/(E1,E2)}, and_rest(V,T).
+and_rest(T,T) --> [].
+
+equality_expre(E) -->   [punct('(')], !, test(E), [punct(')')] ; compar_expre(E1), equality_rest(E1,E).   
+equality_rest(E1,T) --> equality_op(Op) ,!,  compar_expre(E2), {  Tr  =[Op,E1,E2], (call(Tr) -> V is 1; V is 0)}, equality_rest(V,T).
+equality_rest(T,T) --> [].
+
+%compar_expre(E1) comparison_op(Op) ,!, expre(E2) , {Tr  =[Op,E1,E2],( call(Tr) -> B is 1; B is 0 )}.
+
+compar_expre(B) -->   expre(E1), comparison_op(Op) ,!, expre(E2) , {Tr  =[Op,E1,E2],( call(Tr) -> B is 1; B is 0 )}; expre(E1), equality_op(Op) ,!, expre(E2) , {Tr  =[Op,E1,E2],( call(Tr) -> B is 1; B is 0 )}.
+
+ 
+
+opening_paren('(') --> [punct('(')].
+closing_paren(')') --> [punct(')')].
+
+equality_op('==')         --> [punct(=),punct(=)].
+equality_op('!=')        --> [punct(!),punct(=)].
+%comparison_op('==')         --> [punct(=),punct(=)].%applicable to numbers and bools
+%comparison_op('!=')        --> [punct(!),punct(=)].%applicable to numbers and bools
+
+
+
+comparison_op(>)         --> [punct(>)].%ONLY applicable to numbers
+comparison_op(>)         --> [punct(>)].%ONLY applicable to numbers
+comparison_op('>=')        --> [punct(>),punct(=)].%ONLY applicable to numbers
+comparison_op('<=')        -->  [punct(<),punct(=)].%ONLY applicable to numbers
+
+logical_op('||')        -->  [punct('|'),punct('|')].%NOT applicable to numbers
+logical_op('&&')        -->  [punct(&),punct(&)].%NOT applicable to numbers
+
+%replace_each_existing_fact(OldVar, NewVar) :-
+%forall(replace_existing_fact(OldVar, NewVar), true).
+
 replace_existing_fact(OldVar, NewVar) :-
     (   call(OldVar)
-    ->  retract(OldVar),
-        assertz(NewVar)
-    ;   assertz(NewVar)
+    ->  retractall(OldVar),
+        assertz(NewVar);
+       assertz(NewVar)
     ).%https://stackoverflow.com/questions/37871775/prolog-replace-fact-using-fact
-
+ 
 
 
 runEval(Tokens,Ast,RestOfTokens,ExprLs,Results,RestOfEval) :- runDef1(Tokens,Ast,RestOfTokens) ,
@@ -104,39 +132,4 @@ atomic(N) --> [punct('(')], !, expre(N), [punct(')')];  num(N).
 num(N) --> pl_constant(N).
 
 
-%phrase(expre(Z), [6,+,12,/,2]). not working
-/* 
-%driveEval(Ans) :- myeval(expr(+, number(4), expr(/, number(6), number(2))),Ans).
-%expr(+, number(4), expr(/, number(6), expr(*, number(2), expr(-, number(12), number(5)))))
-
-%expr(+, number(4), expr(/, number(6), number(2)))
-
- 
-out_order(X) --> [expr(Op,L,R)], Ans = L Op out_order(R).
-out_order(nil) -->  .
-        out_order(Right),
-        [Name],
-        out_order(Left).
-
-%pl_program(['Program:'|S],Tokens) :- phrase(rest_statements(S),Tokens,Rest),!.%used together with the lists version
-
-
-
-%statement([Ss])  -->   statement(Ss).%,  rest_statements(Ss).
-%statement(['Assign:'|X]) --> [X] .
-statement(['print:'|[W|Ww]])  --> [word(print)] -> [word(W)], statement(Ww).
-statement([W|Ww]) --> [punct(,)] , [word(W)], statement(Ww).
-statement([W|Ww]) -->  [punct(,)] , [word(W)],rest_statements(Ww).
-statement([W|Ww]) -->  [punct(W)] ,rest_statements(Ww).
-statement([W|Ww]) -->  [number(W)] ,rest_statements(Ww).
-statement([W|Ww]) -->  [cntrl(W)] ,rest_statements(Ww).
-
-rest_statements([])  --> [].
-rest_statements([W|Ww])    -->   statement(W), rest_statements(Ww).
-*/
-
-
-%----------------
-%rest_statements([])  --> []. %[NotaWord], { NotaWord}.
-%statement([S|Ss])  --> ([word(S)]; [punct(S)]; [number(S)]) ,statement(Ss).%,  rest_statements(Ss). 
 testPrint(Tokens,Ast) :- my_tokenize('print I will not laugh in class',Tokens),parse(Tokens, Ast).

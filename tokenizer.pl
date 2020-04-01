@@ -116,7 +116,47 @@ Ast =  (assign(id(number), expr(+, number(4), expr(/, number(6), expr(*, number(
 
 
 
+arithmetic_op(+)         --> [punct(+)].
+arithmetic_op(-)         --> [punct(-)].
+arithmetic_op(*)         --> [punct(*)].
+arithmetic_op(/)         --> [punct(/)].
+arithmetic_op(mod)         --> [punct('%')].
 
+%phrase(expre(Z), [6,+,12,/,2]). not working
+/* 
+%driveEval(Ans) :- myeval(expr(+, number(4), expr(/, number(6), number(2))),Ans).
+%expr(+, number(4), expr(/, number(6), expr(*, number(2), expr(-, number(12), number(5)))))
+
+%expr(+, number(4), expr(/, number(6), number(2)))
+
+ 
+out_order(X) --> [expr(Op,L,R)], Ans = L Op out_order(R).
+out_order(nil) -->  .
+        out_order(Right),
+        [Name],
+        out_order(Left).
+
+%pl_program(['Program:'|S],Tokens) :- phrase(rest_statements(S),Tokens,Rest),!.%used together with the lists version
+
+
+
+%statement([Ss])  -->   statement(Ss).%,  rest_statements(Ss).
+%statement(['Assign:'|X]) --> [X] .
+statement(['print:'|[W|Ww]])  --> [word(print)] -> [word(W)], statement(Ww).
+statement([W|Ww]) --> [punct(,)] , [word(W)], statement(Ww).
+statement([W|Ww]) -->  [punct(,)] , [word(W)],rest_statements(Ww).
+statement([W|Ww]) -->  [punct(W)] ,rest_statements(Ww).
+statement([W|Ww]) -->  [number(W)] ,rest_statements(Ww).
+statement([W|Ww]) -->  [cntrl(W)] ,rest_statements(Ww).
+
+rest_statements([])  --> [].
+rest_statements([W|Ww])    -->   statement(W), rest_statements(Ww).
+*/
+
+
+%----------------
+%rest_statements([])  --> []. %[NotaWord], { NotaWord}.
+%statement([S|Ss])  --> ([word(S)]; [punct(S)]; [number(S)]) ,statement(Ss).%,  rest_statements(Ss). 
 
 
 

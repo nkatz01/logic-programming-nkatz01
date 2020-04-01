@@ -5,7 +5,7 @@ print p
 
 a = m > n || n >= p
 
-if (a) 
+if (a && b) 
     print 1  
   else 
     print 0 
