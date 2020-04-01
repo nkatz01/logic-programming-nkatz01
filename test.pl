@@ -10,13 +10,14 @@ print k,f
 k = k + 1
 }',Tokens,[cased(true), spaces(false)]).
 
+
 my_tokenize(Str,Tokens):-
-tokenize(Str, Tokens, [cased(true), spaces(false)]).
+tokenize(Str, Tokens,  [spaces(false), cased(true)]).
 
 runDef(Tokens,Ast,Rest) :- my_tokenize('program factorial; begin read value; count := 1; result := 1; while count < value do begin count \n := count + 1; result := result * count end; write result end',Tokens) ,parse(Tokens, Ast,Rest).
 %'number = 4 + 6 / 2 * 12 - 5 print lola'; 'number = 4 + 6 / 2 * 12 - 5 eggs = number';'number = 4 if (4 + 6 / 2 * 12 - 5 >= 35) print 1 else print 0 print nuchem'
-
-runDef1(Tokens,Ast,Rest) :- my_tokenize('dozen = 6 eggsneeded = 4 eggsbought = 6 sufficienteggs = eggsbought > dozen || eggsbought >= eggsneeded',Tokens) ,parse(Tokens, Ast,Rest).
+%'dozen = 6 eggsneeded = 4 eggsbought = 6 sufficienteggs = eggsbought > dozen || eggsbought >= eggsneeded'
+runDef1(Tokens,Ast,Rest) :- my_tokenize('number = 1 || 1 && 1 && 0',Tokens) ,parse(Tokens, Ast,Rest).
 %runPhar(Tokens,Ast,Rest) :- my_tokenize('(12+ 4)/6',Tokens),parse(Tokens, Ast,Rest) .
 
 parse(Tokens, Ast,Rest) :-
@@ -26,6 +27,7 @@ parse(Tokens, Ast,Rest) :-
 
 pl_program(Ss)   --> rest_statements(Ss). %https://swish.swi-prolog.org/p/Compiler1.swinb
 
+statement(assignBool(id(X), E)) --> identifier(X) ->  [punct(=)] -> test(E), {replace_existing_fact(id(X,_),id(X,E))}.
 
 statement(assign(id(X), E)) --> identifier(X) ->  [punct(=)] -> expre(E), {replace_existing_fact(id(X,_),id(X,E))}.
 statement(if(T,S1,S2))     --> [word(if)], [punct('(')], test(T), [punct(')')], statement(S1), [word(else)], statement(S2).
@@ -44,9 +46,6 @@ rest_statements((S, Ss))    -->   statement(S), rest_statements(Ss).
 rest_statements([])  --> [].
 
 
-
-
-
 pl_constant(N)     --> pl_integer(N), !. %Moved up with cut to avoid numbers appearing as name('1')
 pl_constant(N)       --> identifier(X), {call(id(X,N))}.
 
@@ -57,38 +56,40 @@ identifier(X)              --> [word(X)].
 %test(compare(Op, X, Y))    --> 	logical_op(Op), expre(Y) ,[punct(')')].
 
 
-test(T) --> and_expre(E1), or_rest(E1,T). 
-or_rest(E1,T) -->  [punct('|'),punct('|')],!, and_expre(E2),   {V is /\(E1,E2)}, or_rest(V,T).
+test(T) --> compar_expre(E1),or_rest(E1,T); and_expre(E1), or_rest(E1,T). 
+or_rest(E1,T) -->  [punct('|'),punct('|')],!, and_expre(E2),   {is_one_or_zero(E1,E2), V is \/(E1,E2)}, or_rest(V,T).
 or_rest(T,T) --> [].
 
 and_expre(E) --> compar_expre(E1), and_rest(E1,E); equality_expre(E1), and_rest(E1,E). 
-and_rest(E1,T) --> [punct(&),punct(&)], !, compar_expre(E2), {V is \/(E1,E2)}, and_rest(V,T);  equality_expre(E2) , !,{V is \/(E1,E2)}, and_rest(V,T).
+and_rest(E1,T) --> [punct(&),punct(&)], !, compar_expre(E2), {is_one_or_zero(E1,E2),V is 	/\(E1,E2)}, and_rest(V,T);  equality_expre(E2) , !,{is_one_or_zero(E1,E2), V is /\(E1,E2)}, and_rest(V,T).
 and_rest(T,T) --> [].
 
 equality_expre(E) -->   [punct('(')], !, test(E), [punct(')')] ; compar_expre(E1), equality_rest(E1,E).   
-equality_rest(E1,T) --> equality_op(Op) ,!,  compar_expre(E2), {  Tr  =[Op,E1,E2], (call(Tr) -> V is 1; V is 0)}, equality_rest(V,T).
+equality_rest(E1,T) --> equality_op(Op) ,!,  compar_expre(E2), {  Tr  =..[Op,E1,E2], (call(Tr) -> V is 1; V is 0)}, equality_rest(V,T).
 equality_rest(T,T) --> [].
 
-%compar_expre(E1) comparison_op(Op) ,!, expre(E2) , {Tr  =[Op,E1,E2],( call(Tr) -> B is 1; B is 0 )}.
 
-compar_expre(B) -->   expre(E1), comparison_op(Op) ,!, expre(E2) , {Tr  =[Op,E1,E2],( call(Tr) -> B is 1; B is 0 )}; expre(E1), equality_op(Op) ,!, expre(E2) , {Tr  =[Op,E1,E2],( call(Tr) -> B is 1; B is 0 )}.
+compar_expre(V) -->   expre(E1), comparison_op(Op) ,!, expre(E2) , {Tr  =..[Op,E1,E2],( call(Tr) -> V is 1; V is 0 )}; 		expre(E1), equality_op(Op) ,!, expre(E2) , {Tr  =..[Op,E1,E2],( call(Tr) -> V is 1; V is 0 )};	 expre(V).
+
 
  
-
+is_one_or_zero(E1,E2) :- (E1 == 1 ,E2 == 0);(E1 == 0, E2 == 1);(E1 == 1 ,E2 == 1);(E1 == 0, E2 == 0).
 opening_paren('(') --> [punct('(')].
 closing_paren(')') --> [punct(')')].
 
-equality_op('==')         --> [punct(=),punct(=)].
-equality_op('!=')        --> [punct(!),punct(=)].
-%comparison_op('==')         --> [punct(=),punct(=)].%applicable to numbers and bools
-%comparison_op('!=')        --> [punct(!),punct(=)].%applicable to numbers and bools
+equality_op(==)         --> [punct(=),punct('=')].
+equality_op(\=)        --> [punct(!),punct('=')].
+%comparison_op('==')         --> [punct(=),punct('=')].%applicable to numbers and bools
+%comparison_op('!=')        --> [punct('!'),punct('=')].%applicable to numbers and bools
 
 
 
+
+comparison_op(>=)        --> [punct(>),punct(=)].%ONLY applicable to numbers
 comparison_op(>)         --> [punct(>)].%ONLY applicable to numbers
-comparison_op(>)         --> [punct(>)].%ONLY applicable to numbers
-comparison_op('>=')        --> [punct(>),punct(=)].%ONLY applicable to numbers
-comparison_op('<=')        -->  [punct(<),punct(=)].%ONLY applicable to numbers
+
+comparison_op(=<)        -->  [punct(<),punct(=)].%ONLY applicable to numbers
+comparison_op(<)         --> [punct(<)].%ONLY applicable to numbers
 
 logical_op('||')        -->  [punct('|'),punct('|')].%NOT applicable to numbers
 logical_op('&&')        -->  [punct(&),punct(&)].%NOT applicable to numbers
@@ -97,9 +98,8 @@ logical_op('&&')        -->  [punct(&),punct(&)].%NOT applicable to numbers
 %forall(replace_existing_fact(OldVar, NewVar), true).
 
 replace_existing_fact(OldVar, NewVar) :-
-    (   call(OldVar)
-    ->  retractall(OldVar),
-        assertz(NewVar);
+    (    retractall(OldVar)
+    ->  assertz(NewVar);
        assertz(NewVar)
     ).%https://stackoverflow.com/questions/37871775/prolog-replace-fact-using-fact
  
