@@ -15,7 +15,7 @@ tokenize(Str, Tokens, [cased(true), spaces(false)]).
 
 runDef(Tokens,Ast,Rest) :- my_tokenize('program factorial; begin read value; count := 1; result := 1; while count < value do begin count \n := count + 1; result := result * count end; write result end',Tokens) ,parse(Tokens, Ast,Rest).
 %'number = 4 + 6 / 2 * 12 - 5 print lola'
-runDef1(Tokens,Ast,Rest) :- my_tokenize('print nuchem number = 4 + 6 / 2 * 12 - 5 print lola',Tokens) ,parse(Tokens, Ast,Rest).
+runDef1(Tokens,Ast,Rest) :- my_tokenize('number = 4 + 6 / 2 * 12 - 5 eggs = number',Tokens) ,parse(Tokens, Ast,Rest).
 %runPhar(Tokens,Ast,Rest) :- my_tokenize('(12+ 4)/6',Tokens),parse(Tokens, Ast,Rest) .
 
 parse(Tokens, Ast,Rest) :-
@@ -26,7 +26,7 @@ parse(Tokens, Ast,Rest) :-
 pl_program(Ss)   --> rest_statements(Ss).
 
 
-statement(assign(id(X), E)) --> identifier(X) ->  [punct(=)] -> expression(E).
+statement(assign(id(X), E)) --> identifier(X) ->  [punct(=)] -> expre(E), {replace_existing_fact(id(X,_),id(X,E))}.
 
 statement(print(statements([W])))  --> [word(print)] -> statement(W).						 	
 statement([W|Ww]) --> [word(W)] ->  [punct(,)] , statement(Ww). 
@@ -43,8 +43,7 @@ rest_statements((S, Ss))    -->   statement(S), rest_statements(Ss).
 rest_statements([])  --> [].
 
 
-expression(expr(Op, X, Y)) --> pl_constant(X), arithmetic_op(Op), expression(Y).
-expression(X)              --> pl_constant(X).
+
 
 arithmetic_op(+)         --> [punct(+)].
 arithmetic_op(-)         --> [punct(-)].
@@ -52,8 +51,8 @@ arithmetic_op(*)         --> [punct(*)].
 arithmetic_op(/)         --> [punct(/)].
 arithmetic_op(mod)         --> [punct('%')].
 
-pl_constant(number(X))     --> pl_integer(X), !. % Moved up with cut to avoid numbers appearing as name('1')
-pl_constant(id(X))       --> identifier(X).
+pl_constant(N)     --> pl_integer(N), !. % Moved up with cut to avoid numbers appearing as name('1')
+pl_constant(N)       --> identifier(X), {call(id(X,N))}.
 
 pl_integer(X)              --> [number(X)].
 identifier(X)              --> [word(X)].
@@ -73,7 +72,7 @@ replace_existing_fact(OldVar, NewVar) :-
     (   call(OldVar)
     ->  retract(OldVar),
         assertz(NewVar)
-    ;   true
+    ;   assertz(NewVar)
     ).%https://stackoverflow.com/questions/37871775/prolog-replace-fact-using-fact
 
 
@@ -91,18 +90,18 @@ myeval(expr(Op,number(N),Expr),Ans) :-  Ans = [N,Op, Ls], myeval(Expr,Ls).
 
 %callExtract(ProgAst,InnerAsts,ConvertedToLsExprs):- ProgAst =.. [H|InnerAsts],  extractExp(InnerAsts,ConvertedToLsExprs).
 
-extractExp(([]),[]).
-extractExp(InArgs,ConvertedToLsExprs) :- InArgs = [H|T],   H = assign(_,E), myeval(E,ConvertedToLsExprs),!; T =.. [_|Rest],  extractExp(Rest,ConvertedToLsExprs).
+extractExp([],[]). 
+extractExp((LeftNode,RightTree),ConvertedToLsExprs) :- LeftNode = assign(_,E), myeval(E,ConvertedToLsExprs),!;   extractExp(RightTree,ConvertedToLsExprs).
 
 
 expre(N) --> multiplicative(N1), additive_rest(N1,N).%https://stackoverflow.com/questions/7543100/grammar-involving-braces
-additive_rest(N1,N) --> [+], !, multiplicative(N2), {N3 is N1+N2}, additive_rest(N3,N);   [-], !, multiplicative(N2), {N3 is N1-N2}, additive_rest(N3,N).
+additive_rest(N1,N) --> [punct(+)], !, multiplicative(N2), {N3 is N1+N2}, additive_rest(N3,N);   [punct(-)], !, multiplicative(N2), {N3 is N1-N2}, additive_rest(N3,N).
 additive_rest(N,N) --> [].
 multiplicative(N) --> atomic(N1), multiplicative_rest(N1,N).
-multiplicative_rest(N1,N) --> [*], !, atomic(N2), {N3 is N1*N2}, multiplicative_rest(N3,N);	[/], !, atomic(N2), {N3 is N1/N2}, multiplicative_rest(N3,N).
+multiplicative_rest(N1,N) --> [punct(*)], !, atomic(N2), {N3 is N1*N2}, multiplicative_rest(N3,N);	[punct(/)], !, atomic(N2), {N3 is N1/N2}, multiplicative_rest(N3,N);	[punct('%')], !, atomic(N2), {N3 is mod(N1,N2)}, multiplicative_rest(N3,N).
 multiplicative_rest(N,N) --> [].
-atomic(N) --> ['('], !, expre(N), [')'];  num(N). 
-num(N) --> [N], {number(N)}.
+atomic(N) --> [punct('(')], !, expre(N), [punct(')')];  num(N). 
+num(N) --> pl_constant(N).
 
 
 %phrase(expre(Z), [6,+,12,/,2]). not working
