@@ -1,29 +1,41 @@
-:-  use_module(library(tokenize)).
-% {write('im called')} ,
-% {format('X=~w~n', [X])},
-my_tokenize1(Tokens) :- tokenize('n = 8
-k = 1
-f = 1
-while (k <= n) { f = f * k print k,f k = k + 1
-}',Tokens,[cased(true), spaces(false)]).
+:- use_module(library(tokenize)).
+:- use_module(library(apply)).
+:- use_module(library(pprint)).
+:- use_module(library(lists)).
+file('cmmExamples/example1.cmm').
+file('cmmExamples/example2.cmm').
+file('cmmExamples/example3.cmm').
+file('cmmExamples/example4.cmm').
+file('cmmExamples/example5.cmm').
+my_tokenize_file :-   file(Link),    tokenize_file(Link, TokensContaminataed, [cntrl(false),spaces(false), cased(true)]),filterCtrlsAndDblSpaces(TokensContaminataed, Tokens), parse(Tokens, _,Rest) ,print(Rest), nl,fail.
 
+are_identical(X, Y) :- %https://stackoverflow.com/questions/297996/prolog-filtering-a-list
+    X == Y.
+
+filterList(A, In, Out) :-
+    exclude(are_identical(A), In, Out).
+
+
+filterCtrlsAndDblSpaces(In, Out4) :- filterList(space(' '),In,Out1), filterList(cntrl('\r'),Out1,Out2), filterList(cntrl('\n'),Out2,Out3),  filterList(cntrl('\t'),Out3,Out4).
+
+
+ 
 
 my_tokenize(Str,Tokens):-
-tokenize(Str, Tokens,  [spaces(false), cased(true)]).
+tokenize(Str, TokensContaminataed,  [cntrl(false),spaces(false), cased(true)]), filterCtrlsAndDblSpaces(TokensContaminataed,Tokens).
 
-runDef(Tokens,Ast,Rest) :- my_tokenize('program factorial; begin read value; count := 1; result := 1; while count < value do begin count \n := count + 1; result := result * count end; write result end',Tokens) ,parse(Tokens, Ast,Rest).
 %'number = 4 + 6 / 2 * 12 - 5 print number'; 'number = 4 + 6 / 2 * 12 - 5 eggs = number';'number = 4 if (4 + 6 / 2 * 12 - 5 >= 35) print 1 else print 0 print nuchem';'if (4 + 6 / 2 * 12 - 5 >= 35) print 1 else print 0 number = 4 print nuchem'
 %'dozen = 6 eggsneeded = 4 eggsbought = 6 sufficienteggs = eggsbought > dozen || eggsbought >= eggsneeded';'number = 1 || 1 && 1 && 0';'bool = 1 && 0 || 1 && 0';'number = 0 || 0 <= 0 && 1';'while (3 <= 4) { f = 5 * 6}'
 %'n = 500 low = 0 high = n + 1 while(high - low >= 2) { mid = (low + high) / 2 if (mid * mid <= n) low = mid else high = mid print low, high } print low'
-runDef1(Tokens,Ast,Rest) :- my_tokenize('n = 500 low = 0 high = n + 1 while(high - low >= 2) { mid = (low + high) / 2 if (mid * mid <= n) low = mid else high = mid print low, high , 15, 500} print low',Tokens) ,parse(Tokens, Ast,Rest).
+runDef1(Tokens,Ast,Rest) :- my_tokenize('n = 500  		
+  low = 0',Tokens)  ,parse(Tokens, Ast,Rest).
 %runPhar(Tokens,Ast,Rest) :- my_tokenize('(12+ 4)/6',Tokens),parse(Tokens, Ast,Rest) .
-% 
+
 parse(Tokens, Ast,Rest) :-
   phrase(pl_program(Ast),Tokens,Rest),!.
  
 pl_program(Ss)   --> rest_statements(Ss). %https://swish.swi-prolog.org/p/Compiler1.swinb
 
-%(assign(id(n), 500), assign(id(low), 0), assign(id(high), 501), while(1,  (assign(id(mid), 250.5), if(0,  (assign(id(low), 250.5), []),  (assign(id(high), 250.5), print(statements([[250.5|250.5]])), [])), [])), print(statements([250.5])), []),
 
 statement(assign(id(X), E)) --> identifier(X), {X \= 'print', X \= 'if', X \= 'while'},    [punct(=)] -> cond_expre(E), {replace_existing_fact(id(X,_),id(X,E))}.
 %statement(assignBool(id(X), E)) --> identifier(X), {X \= 'print', X \= 'if', X \= 'while'},    [punct(=)] -> cond_expre(E), {replace_existing_fact(id(X,_),id(X,E))}.
@@ -132,8 +144,3 @@ myeval(expr(Op,number(N),Expr),Ans) :-  Ans = [N,Op, Ls], myeval(Expr,Ls).
 extractExp([],[]). 
 extractExp((LeftNode,RightTree),ConvertedToLsExprs) :- LeftNode = assign(_,E), myeval(E,ConvertedToLsExprs),!;   extractExp(RightTree,ConvertedToLsExprs).
 */
-
-
-
-
-testPrint(Tokens,Ast) :- my_tokenize('print I will not laugh in class',Tokens),parse(Tokens, Ast).

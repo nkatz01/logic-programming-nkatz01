@@ -1,3 +1,7 @@
+% {write('im called')} ,
+% {format('X=~w~n', [X])},
+%format('~s~n', [Rest])
+print_term(List,[]),nl.
 tokenize(`1 * 3`, Tokens), untokenize(Tokens, Text), Tokens = [A,_,B,_,C|T].
 tokenize(`1 * 3`, Tokens), untokenize(Tokens, Text), Tokens = [A,_,B,_,C],A = number(X), C = number(Z), B=punct((Y)),Ans is  X * Z.
  tokenize(`1 * 3`, Tokens), untokenize(Tokens, Text), Tokens = [A,_,B,_,C],A = number(X), C = number(Z), untokenize([B],Y),Y = [H], char_code(M,H), Ans is  X H Z.	
@@ -8,10 +12,41 @@ tokenize(`1 * 3`, Tokens), untokenize(Tokens, Text), Tokens = [A,_,B,_,C],A = nu
 tokenize(`4 * 3`, Tokens , [cased(true), spaces(false)]),Tokens = [A,B,C], arg(1,A,X), B = punct(Y), arg(1,C,Z) , M =..[Y,X,Z], Ans is M.
 
 %from file
-tokenize_file('/mmExamples/example1.cmm', Tokens, [cased(true), spaces(false)]).
+tokenize_file(/cmmExamples/example1.cmm', Tokens, [cased(true), spaces(false)]).
 
 %also works
 tokenize(`4 * 3 - 7 asdfdsf`, Tokens, [cased(true), spaces(false)]),Tokens = [A|T],functor(A,Name,NoOfParams),Name==number, arg(1,A,Int).
+
+
+/*filter(_,[],[]).
+filter(P, A0-As0, As) :-
+    (
+        call(P, A0) -> As = A0-As1
+    ;
+        As = As1
+    )
+    , filter(P, As0, As1).
+
+*/
+
+
+are_identical(X, Y) :- %https://stackoverflow.com/questions/297996/prolog-filtering-a-list
+    X == Y.
+
+filterList(A, In, Out) :-
+    exclude(are_identical(A), In, Out).
+
+/*	
+is_space_or_cntrl(X) :-  
+    X == space(' '); X == cntrl(_).
+	
+filterList(In, Out) :-
+    exclude(is_space_or_cntrl(X), In, Out).
+*/
+
+%filterCtrlsAndDblSpaces(In, Out2) :- filterList(space(' '),In,Out1), filterList(cntrl('\r'),Out1,Out2), filterList(cntrl('\n'),Out1,Out2),  filterList(cntrl('\t'),Out1,Out2).
+
+
 
  node(program, nill, node(
 							node(assign, node(number, nill, nill), node(100, nill, nill)), nill, [])).
