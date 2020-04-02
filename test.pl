@@ -16,8 +16,8 @@ tokenize(Str, Tokens,  [spaces(false), cased(true)]).
 
 runDef(Tokens,Ast,Rest) :- my_tokenize('program factorial; begin read value; count := 1; result := 1; while count < value do begin count \n := count + 1; result := result * count end; write result end',Tokens) ,parse(Tokens, Ast,Rest).
 %'number = 4 + 6 / 2 * 12 - 5 print lola'; 'number = 4 + 6 / 2 * 12 - 5 eggs = number';'number = 4 if (4 + 6 / 2 * 12 - 5 >= 35) print 1 else print 0 print nuchem'
-%'dozen = 6 eggsneeded = 4 eggsbought = 6 sufficienteggs = eggsbought > dozen || eggsbought >= eggsneeded';'number = 1 || 1 && 1 && 0'
-runDef1(Tokens,Ast,Rest) :- my_tokenize('bool = 1 < 0',Tokens) ,parse(Tokens, Ast,Rest).
+%'dozen = 6 eggsneeded = 4 eggsbought = 6 sufficienteggs = eggsbought > dozen || eggsbought >= eggsneeded';'number = 1 || 1 && 1 && 0';'bool = 1 && 0 || 1 && 0'
+runDef1(Tokens,Ast,Rest) :- my_tokenize('bool = 1 || 1 && 1 && 0',Tokens) ,parse(Tokens, Ast,Rest).
 %runPhar(Tokens,Ast,Rest) :- my_tokenize('(12+ 4)/6',Tokens),parse(Tokens, Ast,Rest) .
 
 parse(Tokens, Ast,Rest) :-
@@ -56,7 +56,7 @@ identifier(X)              --> [word(X)].
 %test(compare(Op, X, Y))    --> 	logical_op(Op), expre(Y) ,[punct(')')].
 
 
-test(T) -->  and_expre(E1), or_rest(E1,T). 
+test(T) -->  and_expre(E1), or_rest(E1,T);  or_expre(E1), and_rest(E1,T).
 or_rest(E1,T) -->  [punct('|'),punct('|')],!, and_expre(E2),   {is_one_or_zero(E1,E2), V is \/(E1,E2)}, or_rest(V,T).
 or_rest(T,T) --> [].
 
@@ -64,11 +64,12 @@ and_expre(T) --> compar_expre(E1), and_rest(E1,T).
 and_rest(E1,T) --> [punct(&),punct(&)], !, compar_expre(E2), {is_one_or_zero(E1,E2),V is 	/\(E1,E2)}, and_rest(V,T).
 and_rest(T,T) --> [].
 
-compar_expre(T) --> atomic(E1), compar_rest(E1,T).%could handle sperately equalitly Ops.
+compar_expre(T) --> atomic_texpre(E1), compar_rest(E1,T).%could handle sperately equalitly Ops.%added cut
 compar_rest(E1,T) -->  comparison_op(Op) ,!, atomic_texpre(E2) , {Tr  =..[Op,E1,E2],( call(Tr) -> V is 1; V is 0 )},compar_rest(V,T).
 compar_rest(T,T) --> [].
 
-atomic_texpre(T) --> [punct('(')], !, test(T), [punct(')')];  	 arith_expre(T).
+atomic_texpre(T) --> [punct('(')], !, test(T), [punct(')')];   	 arith_expre(T).
+
 arith_expre(V) --> expre(V).
 
  
