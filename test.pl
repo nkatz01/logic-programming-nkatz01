@@ -27,10 +27,10 @@ parse(Tokens, Ast,Rest) :-
 
 pl_program(Ss)   --> rest_statements(Ss). %https://swish.swi-prolog.org/p/Compiler1.swinb
 
-statement(assignBool(id(X), E)) --> identifier(X) ->  [punct(=)] -> test(E), {replace_existing_fact(id(X,_),id(X,E))}.
+statement(assignBool(id(X), E)) --> identifier(X) ->  [punct(=)] -> cond_expre(E), {replace_existing_fact(id(X,_),id(X,E))}.
 
 statement(assign(id(X), E)) --> identifier(X) ->  [punct(=)] -> expre(E), {replace_existing_fact(id(X,_),id(X,E))}.
-statement(if(T,S1,S2))     --> [word(if)], [punct('(')], test(T), [punct(')')], statement(S1), [word(else)], statement(S2).
+statement(if(T,S1,S2))     --> [word(if)], [punct('(')], cond_expre(T), [punct(')')], statement(S1), [word(else)], statement(S2).
 statement(print(statements([W])))  --> [word(print)] -> statement(W).						 	
 statement([W|Ww]) --> [word(W)] ->  [punct(,)] , statement(Ww). 
 statement([N|Ww]) --> [number(N)] -> [punct(,)]    , statement(Ww).
@@ -52,11 +52,15 @@ pl_constant(N)       --> identifier(X), {call(id(X,N))}.
 pl_integer(X)              --> [number(X)].
 identifier(X)              --> [word(X)].
 
-%test(compare(Op, X, Y))    -->  comparison_op(Op), expre(Y) ,.
-%test(compare(Op, X, Y))    --> 	logical_op(Op), expre(Y) ,[punct(')')].
+%cond_expre(compare(Op, X, Y))    -->  comparison_op(Op), expre(Y) ,.
+%cond_expre(compare(Op, X, Y))    --> 	logical_op(Op), expre(Y) ,[punct(')')].
 
 
-test(T) -->  and_expre(E1), or_rest(E1,T);  or_expre(E1), and_rest(E1,T).
+const_expre(T) --> cond_expre(E1), cond_rest(E1,T).%https://cs.wmich.edu/~gupta/teaching/cs4850/sumII06/The%20syntax%20of%20C%20in%20Backus-Naur%20form.htm
+
+cond_expre(T) -->  and_expre(E1), or_rest(E1,T);  or_expre(E1), and_rest(E1,T).
+cond_expre(T,T) --> [].
+
 or_rest(E1,T) -->  [punct('|'),punct('|')],!, and_expre(E2),   {is_one_or_zero(E1,E2), V is \/(E1,E2)}, or_rest(V,T).
 or_rest(T,T) --> [].
 
@@ -68,7 +72,7 @@ compar_expre(T) --> atomic_texpre(E1), compar_rest(E1,T).%could handle sperately
 compar_rest(E1,T) -->  comparison_op(Op) ,!, atomic_texpre(E2) , {Tr  =..[Op,E1,E2],( call(Tr) -> V is 1; V is 0 )},compar_rest(V,T).
 compar_rest(T,T) --> [].
 
-atomic_texpre(T) --> [punct('(')], !, test(T), [punct(')')];   	 arith_expre(T).
+atomic_texpre(T) --> [punct('(')], !, cond_expre(T), [punct(')')];   	 arith_expre(T).
 
 arith_expre(V) --> expre(V).
 
@@ -77,10 +81,10 @@ is_one_or_zero(E1,E2) :- (E1 == 1 ,E2 == 0);(E1 == 0, E2 == 1);(E1 == 1 ,E2 == 1
 opening_paren('(') --> [punct('(')].
 closing_paren(')') --> [punct(')')].
 
-%equality_op(==)         --> [punct(=),punct(=)].
-%equality_op(\=)        --> [punct(!),punct(=)].
-comparison_op(==)         --> [punct(=),punct(=)].%applicable to numbers and bools
-comparison_op(\=)        --> [punct(!),punct(=)].%applicable to numbers and bools
+equality_op(==)         --> [punct(=),punct(=)].
+equality_op(\=)        --> [punct(!),punct(=)].
+%comparison_op(==)         --> [punct(=),punct(=)].%applicable to numbers and bools
+%comparison_op(\=)        --> [punct(!),punct(=)].%applicable to numbers and bools
 
 
 
