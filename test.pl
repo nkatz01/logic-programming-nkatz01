@@ -52,25 +52,30 @@ pl_constant(N)       --> identifier(X), {call(id(X,N))}.
 pl_integer(X)              --> [number(X)].
 identifier(X)              --> [word(X)].
 
-%cond_expre(compare(Op, X, Y))    -->  comparison_op(Op), expre(Y) ,.
+%cond_expre(compare(Op, X, Y))    -->  relat_op(Op), expre(Y) ,.
 %cond_expre(compare(Op, X, Y))    --> 	logical_op(Op), expre(Y) ,[punct(')')].
 
 
-const_expre(T) --> cond_expre(E1), cond_rest(E1,T).%https://cs.wmich.edu/~gupta/teaching/cs4850/sumII06/The%20syntax%20of%20C%20in%20Backus-Naur%20form.htm
+%https://cs.wmich.edu/~gupta/teaching/cs4850/sumII06/The%20syntax%20of%20C%20in%20Backus-Naur%20form.htm
 
-cond_expre(T) -->  and_expre(E1), or_rest(E1,T);  or_expre(E1), and_rest(E1,T).
-cond_expre(T,T) --> [].
+cond_expre(T) -->  and_expre(E1), or_rest(E1,T). 	 
+
+
 
 or_rest(E1,T) -->  [punct('|'),punct('|')],!, and_expre(E2),   {is_one_or_zero(E1,E2), V is \/(E1,E2)}, or_rest(V,T).
 or_rest(T,T) --> [].
 
-and_expre(T) --> compar_expre(E1), and_rest(E1,T).
-and_rest(E1,T) --> [punct(&),punct(&)], !, compar_expre(E2), {is_one_or_zero(E1,E2),V is 	/\(E1,E2)}, and_rest(V,T).
+and_expre(T) --> equality_expre(E1), and_rest(E1,T).
+and_rest(E1,T) --> [punct(&),punct(&)], !, equality_expre(E2), {is_one_or_zero(E1,E2),V is 	/\(E1,E2)}, and_rest(V,T).
 and_rest(T,T) --> [].
 
-compar_expre(T) --> atomic_texpre(E1), compar_rest(E1,T).%could handle sperately equalitly Ops.%added cut
-compar_rest(E1,T) -->  comparison_op(Op) ,!, atomic_texpre(E2) , {Tr  =..[Op,E1,E2],( call(Tr) -> V is 1; V is 0 )},compar_rest(V,T).
-compar_rest(T,T) --> [].
+equality_expre(T) -->   relat_expre(E1), equality_rest(E1,T).   
+equality_rest(E1,T) --> equality_op(Op) ,!,  relat_expre(E2), {  Tr  =..[Op,E1,E2], (call(Tr) -> V is 1; V is 0)}, equality_rest(V,T).
+equality_rest(T,T) --> [].
+
+relat_expre(T) --> atomic_texpre(E1), relat_rest(E1,T).%could handle sperately equalitly Ops.%added cut
+relat_rest(E1,T) -->  relat_op(Op) ,!, atomic_texpre(E2) , {Tr  =..[Op,E1,E2],( call(Tr) -> V is 1; V is 0 )},relat_rest(V,T).
+relat_rest(T,T) --> [].
 
 atomic_texpre(T) --> [punct('(')], !, cond_expre(T), [punct(')')];   	 arith_expre(T).
 
@@ -83,17 +88,17 @@ closing_paren(')') --> [punct(')')].
 
 equality_op(==)         --> [punct(=),punct(=)].
 equality_op(\=)        --> [punct(!),punct(=)].
-%comparison_op(==)         --> [punct(=),punct(=)].%applicable to numbers and bools
-%comparison_op(\=)        --> [punct(!),punct(=)].%applicable to numbers and bools
+%relat_op(==)         --> [punct(=),punct(=)].%applicable to numbers and bools
+%relat_op(\=)        --> [punct(!),punct(=)].%applicable to numbers and bools
 
 
 
 
-comparison_op(>=)        --> [punct(>),punct(=)].%ONLY applicable to numbers
-comparison_op(>)         --> [punct(>)].%ONLY applicable to numbers
+relat_op(>=)        --> [punct(>),punct(=)].%ONLY applicable to numbers
+relat_op(>)         --> [punct(>)].%ONLY applicable to numbers
 
-comparison_op(=<)        -->  [punct(<),punct(=)].%ONLY applicable to numbers
-comparison_op(<)         --> [punct(<)].%ONLY applicable to numbers
+relat_op(=<)        -->  [punct(<),punct(=)].%ONLY applicable to numbers
+relat_op(<)         --> [punct(<)].%ONLY applicable to numbers
 
 %logical_op('||')        -->  [punct('|'),punct('|')].%NOT applicable to numbers
 %logical_op('&&')        -->  [punct(&),punct(&)].%NOT applicable to numbers
