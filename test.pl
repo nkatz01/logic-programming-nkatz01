@@ -16,8 +16,8 @@ tokenize(Str, Tokens,  [spaces(false), cased(true)]).
 
 runDef(Tokens,Ast,Rest) :- my_tokenize('program factorial; begin read value; count := 1; result := 1; while count < value do begin count \n := count + 1; result := result * count end; write result end',Tokens) ,parse(Tokens, Ast,Rest).
 %'number = 4 + 6 / 2 * 12 - 5 print lola'; 'number = 4 + 6 / 2 * 12 - 5 eggs = number';'number = 4 if (4 + 6 / 2 * 12 - 5 >= 35) print 1 else print 0 print nuchem'
-%'dozen = 6 eggsneeded = 4 eggsbought = 6 sufficienteggs = eggsbought > dozen || eggsbought >= eggsneeded';'number = 1 || 1 && 1 && 0';'bool = 1 && 0 || 1 && 0'
-runDef1(Tokens,Ast,Rest) :- my_tokenize('bool = 1 || 1 && 1 && 0',Tokens) ,parse(Tokens, Ast,Rest).
+%'dozen = 6 eggsneeded = 4 eggsbought = 6 sufficienteggs = eggsbought > dozen || eggsbought >= eggsneeded';'number = 1 || 1 && 1 && 0';'bool = 1 && 0 || 1 && 0';'number = 0 || 0 <= 0 && 1'
+runDef1(Tokens,Ast,Rest) :- my_tokenize('number = 0 || 0 <= 0 && 1',Tokens) ,parse(Tokens, Ast,Rest).
 %runPhar(Tokens,Ast,Rest) :- my_tokenize('(12+ 4)/6',Tokens),parse(Tokens, Ast,Rest) .
 
 parse(Tokens, Ast,Rest) :-
@@ -27,9 +27,8 @@ parse(Tokens, Ast,Rest) :-
 
 pl_program(Ss)   --> rest_statements(Ss). %https://swish.swi-prolog.org/p/Compiler1.swinb
 
-statement(assignBool(id(X), E)) --> identifier(X) ->  [punct(=)] -> cond_expre(E), {replace_existing_fact(id(X,_),id(X,E))}.
 
-statement(assign(id(X), E)) --> identifier(X) ->  [punct(=)] -> expre(E), {replace_existing_fact(id(X,_),id(X,E))}.
+statement(assign(id(X), E)) --> identifier(X) ->  [punct(=)] -> cond_expre(E), {replace_existing_fact(id(X,_),id(X,E))}.
 statement(if(T,S1,S2))     --> [word(if)], [punct('(')], cond_expre(T), [punct(')')], statement(S1), [word(else)], statement(S2).
 statement(print(statements([W])))  --> [word(print)] -> statement(W).						 	
 statement([W|Ww]) --> [word(W)] ->  [punct(,)] , statement(Ww). 
