@@ -27,9 +27,9 @@ tokenize(Str, TokensContaminataed,  [cased(true)]), filterCtrlsAndDblSpaces(Toke
 %'number = 4 + 6 / 2 * 12 - 5 print number'; 'number = 4 + 6 / 2 * 12 - 5 eggs = number';'number = 4 if (4 + 6 / 2 * 12 - 5 >= 35) print 1 else print 0 print nuchem';'if (4 + 6 / 2 * 12 - 5 >= 35) print 1 else print 0 number = 4 print nuchem'
 %'dozen = 6 eggsneeded = 4 eggsbought = 6 sufficienteggs = eggsbought > dozen || eggsbought >= eggsneeded';'number = 1 || 1 && 1 && 0';'bool = 1 && 0 || 1 && 0';'number = 0 || 0 <= 0 && 1';'while (3 <= 4) { f = 5 * 6}'
 %'n = 500 low = 0 high = n + 1 while(high - low >= 2) { mid = (low + high) / 2 if (mid * mid <= n) low = mid else high = mid print low, high } print low'
-runDef1(Tokens,Ast,Rest) :- my_tokenize('number = 4 + 6 + 2 / 12 - 5',Tokens)  ,parse(Tokens, Ast,Rest).
+runDef1(Tokens,Ast,Rest) :- my_tokenize('number = 4 + 6 / 2 * 12 - 5',Tokens)  ,parse(Tokens, Ast,Rest).
 %runPhar(Tokens,Ast,Rest) :- my_tokenize('(12+ 4)/6',Tokens),parse(Tokens, Ast,Rest) .
-%'divisor = 2 number = 4 + 6 / divisor * 12 - 5'
+
 parse(Tokens, Ast,Rest) :-
   phrase(pl_program(Ast),Tokens,Rest),!.
  
@@ -56,8 +56,8 @@ rest_statements((S, Ss))    -->   statement(S), rest_statements(Ss).
 rest_statements([])  --> [].
 
 
-pl_constant(num(N))     --> pl_integer(N), !. %Moved up with cut to avoid numbers appearing as name('1')
-pl_constant(id(X))       --> identifier(X), {call(id(X,_))}.
+pl_constant(N)     --> pl_integer(N), !. %Moved up with cut to avoid numbers appearing as name('1')
+pl_constant(N)       --> identifier(X), {call(id(X,N))}.
 
 pl_integer(X)              --> [number(X)].
 identifier(X)              --> [word(X)].
@@ -131,19 +131,19 @@ relat_op(<)         --> [punct(<)].%ONLY applicable to numbers
 
 expre(N) --> multiplicative(N1), additive_rest(N1,N).%https://stackoverflow.com/questions/7543100/grammar-involving-braces
 
-additive_rest(N1,N) --> [punct('+')], !, multiplicative(N2), {N3 = (+,N1,N2)}, additive_rest(N3,N);  
-						[punct('-')], !, multiplicative(N2), {N3 = (-,N1,N2)}, additive_rest(N3,N).
+additive_rest(N1,N) --> [punct('+')], !, multiplicative(N2), {N3 is N1+N2}, additive_rest(N3,N);  
+						[punct('-')], !, multiplicative(N2), {N3 is N1-N2}, additive_rest(N3,N).
 additive_rest(N,N) --> [].
 
 multiplicative(N) --> atomic(N1), multiplicative_rest(N1,N).
-multiplicative_rest(N1,N) --> [punct('*')], !, atomic(N2), {N3 = (*,N1,N2)}, multiplicative_rest(N3,N);
-								[punct('/')], !, atomic(N2), {N3 = (/,N1,N2)}, multiplicative_rest(N3,N);	
-								[punct('%')], !, atomic(N2), {N3 = (mod,N1,N2)}, multiplicative_rest(N3,N).
+multiplicative_rest(N1,N) --> [punct('*')], !, atomic(N2), {N3 is N1*N2}, multiplicative_rest(N3,N);
+								[punct('/')], !, atomic(N2), {N3 is N1/N2}, multiplicative_rest(N3,N);	
+								[punct('%')], !, atomic(N2), {N3 is mod(N1,N2)}, multiplicative_rest(N3,N).
 multiplicative_rest(N,N) --> [].
 
 atomic(N) --> [punct('(')], !, expre(N), [punct(')')];  num(N). 
 num(N) --> pl_constant(N).
-
+%num(_)--> [].
 
 %logical_op('||')        -->  [punct('|'),punct('|')].%NOT applicable to numbers
 %logical_op('&&')        -->  [punct(&),punct(&)].%NOT applicable to numbers

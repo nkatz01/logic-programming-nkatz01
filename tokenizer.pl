@@ -193,6 +193,54 @@ rest_statements([W|Ww])    -->   statement(W), rest_statements(Ww).
 %rest_statements([])  --> []. %[NotaWord], { NotaWord}.
 %statement([S|Ss])  --> ([word(S)]; [punct(S)]; [number(S)]) ,statement(Ss).%,  rest_statements(Ss). 
 
+ (assign(id(number),  (-, (+, num(4), mul, (div, num(6), num(2)), num(12)), num(5))), []),
+
+val = 1
+
+while (val < 100) {
+    print val
+    val = 2 * val 
+}
+
+ ((+), num(4), (*), num(1), num(12)))
+ ((+), ((/), num(6), num(4)), (*), num(1), num(12)))
+(assign(id(number),  ((-), ((+), num(4), (*), ((\/), num(6), num(2)), num(12)), 	num(5))),[]),
+'number = 4 + 6 / 2 * 12 - 5 '
+((*), ((\/), num(6), num(2)), num(12))
+
+
+ T = (*,2,3), T =(Op,X,Y), Mul =.. [Op,X,Y], Ans is Mul.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
