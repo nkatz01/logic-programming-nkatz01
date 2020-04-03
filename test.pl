@@ -27,7 +27,7 @@ tokenize(Str, TokensContaminataed,  [cased(true)]), filterCtrlsAndDblSpaces(Toke
 %'number = 4 + 6 / 2 * 12 - 5 print number'; 'number = 4 + 6 / 2 * 12 - 5 eggs = number';'number = 4 if (4 + 6 / 2 * 12 - 5 >= 35) print 1 else print 0 print nuchem';'if (4 + 6 / 2 * 12 - 5 >= 35) print 1 else print 0 number = 4 print nuchem'
 %'dozen = 6 eggsneeded = 4 eggsbought = 6 sufficienteggs = eggsbought > dozen || eggsbought >= eggsneeded';'number = 1 || 1 && 1 && 0';'bool = 1 && 0 || 1 && 0';'number = 0 || 0 <= 0 && 1';'while (3 <= 4) { f = 5 * 6}'
 %'n = 500 low = 0 high = n + 1 while(high - low >= 2) { mid = (low + high) / 2 if (mid * mid <= n) low = mid else high = mid print low, high } print low'
-runDef1(Tokens,Ast,Rest) :- my_tokenize('number = 4 + 6 + 2 / 12 - 5',Tokens)  ,parse(Tokens, Ast,Rest).
+runDef1(Tokens,Ast,Rest) :- my_tokenize('number = 4 + 6 / 2 * 12 - 5',Tokens)  ,parse(Tokens, Ast,Rest), extractExp(Ast,EvalResults), write(EvalResults).
 %runPhar(Tokens,Ast,Rest) :- my_tokenize('(12+ 4)/6',Tokens),parse(Tokens, Ast,Rest) .
 %'divisor = 2 number = 4 + 6 / divisor * 12 - 5'
 parse(Tokens, Ast,Rest) :-
@@ -55,6 +55,7 @@ statement --> [].
 rest_statements((S, Ss))    -->   statement(S), rest_statements(Ss).
 rest_statements([])  --> [].
 
+tright((Node), Node).
 
 pl_constant(num(N))     --> pl_integer(N), !. %Moved up with cut to avoid numbers appearing as name('1')
 pl_constant(id(X))       --> identifier(X), {call(id(X,_))}.
@@ -62,8 +63,16 @@ pl_constant(id(X))       --> identifier(X), {call(id(X,_))}.
 pl_integer(X)              --> [number(X)].
 identifier(X)              --> [word(X)].
 
-%callExtract(ProgAst,InnerAsts,ConvertedToLsExprs):- ProgAst =.. [H|InnerAsts],  extractTree(InnerAsts,ConvertedToLsExprs).
+extractExp([],[]). 
+extractExp((LeftNode,RightTree),EvalResults) :- LeftNode = assign(_,E), evaluteExp(E,EvalResults),!;   extractExp(RightTree,EvalResults).
+
+
+evaluteExp((Tree),Res) :- ((Tree = (Op, num(X), num(Y)); Tree = (Op, id(X), num(Y)); Tree = (Op, id(X), num(Y))), Operate =.. [Op,X,Y] , Res is Operate); Tree = num(Res); Tree = id(Res).
+evaluteExp((Op,LeftNode,RightNode),Res) :- evaluteExp(LeftNode, ResLeft),  evaluteExp(RightNode,ResRight), Operate =.. [Op,ResLeft,ResRight] , Res is Operate.
+
 /*
+%callExtract(ProgAst,InnerAsts,ConvertedToLsExprs):- ProgAst =.. [H|InnerAsts],  extractTree(InnerAsts,ConvertedToLsExprs).
+
 extractTree([],[]). 
 extractTree((LeftNode,RightTree)) :- 
 
