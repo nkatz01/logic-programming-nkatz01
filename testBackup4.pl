@@ -28,16 +28,16 @@ tokenize(Str, TokensContaminataed,  [cased(true)]), filterCtrlsAndDblSpaces(Toke
 %'number = 4 + 6 / 2 * 12 - 5 print number'; 'number = 4 + 6 / 2 * 12 - 5 eggs = number';'number = 4 if (4 + 6 / 2 * 12 - 5 >= 35) print 1 else print 0 print nuchem';'if (4 + 6 / 2 * 12 - 5 >= 35) print 1 else print 0 number = 4 print nuchem'
 %'dozen = 6 eggsneeded = 4 eggsbought = 6 sufficienteggs = eggsbought > dozen || eggsbought >= eggsneeded';'number = 1 || 1 && 1 && 0';'bool = 1 && 0 || 1 && 0';'number = 0 || 0 <= 0 && 1';'while (3 <= 4) { f = 5 * 6}'
 %'n = 500 low = 0 high = n + 1 while(high - low >= 2) { mid = (low + high) / 2 if (mid * mid <= n) low = mid else high = mid print low, high } print low'
-runDef1(Tokens,Ast,Rest) :- my_tokenize('dozen = 6 eggsneeded = 4 eggsbought = 3 sufficienteggs = eggsbought > dozen || eggsbought >= eggsneeded',Tokens)  ,parse(Tokens, Ast,Rest)    , extractExp(Ast).
+runDef1(Tokens,Ast,Rest) :- my_tokenize('number = 4 + 6 / 2 * 12 - 5 eggs = number addingthem = eggs + number + 4 doubleit = addingthem * 2',Tokens)  ,parse(Tokens, Ast,Rest) .% , extractExp(Ast).
 %runPhar(Tokens,Ast,Rest) :- my_tokenize('(12+ 4)/6',Tokens),parse(Tokens, Ast,Rest) .
-%'divisor = 2 number = 4 + 6 / divisor * 12 - 5';'number = 4 + 6 / 2 * 12 - 5 eggs = number addingthem = eggs + number + 4 doubleit = addingthem * 2'
+%'divisor = 2 number = 4 + 6 / divisor * 12 - 5';
 parse(Tokens, Ast,Rest) :-
   phrase(pl_program(Ast),Tokens,Rest),!.
  
 pl_program(Ss)   --> rest_statements(Ss). %https://swish.swi-prolog.org/p/Compiler1.swinb
 
 
-statement(assign(id(X), E)) --> identifier(X), {X \= 'print', X \= 'if', X \= 'while'},    [punct(=)] -> cond_expre(E), {  assertThisFact(id(X,_)) }.
+statement(assign(id(X), E)) --> identifier(X), {X \= 'print', X \= 'if', X \= 'while'},    [punct(=)] -> expre(E), {  assertThisFact(id(X,_)) }.
 
 %statement(assignBool(id(X), E)) --> identifier(X), {X \= 'print', X \= 'if', X \= 'while'},    [punct(=)] -> cond_expre(E), {replace_existing_fact(id(X,_),id(X,E))}.
 
@@ -83,48 +83,26 @@ replace_existing_fact(OldVar, NewVar) :-
  
 extractExp([]). 
 extractExp((LeftNode,RightTree)) :-  									%( E = num(D) ;	(E = id(V), call(id(V,num(D))))), Res = D,	write(Res),nl)
-	(LeftNode = assign(id(Id),E) ->	evaluteExp(E,Results), \+var(Results),	    write(Results), nl,	replace_each_existing_fact(id(Id,_),id(Id,num(Results))), extractExp(RightTree)),!	;  extractExp(RightTree).
+	(LeftNode = assign(id(Id),E) ->	evaluteExp(E,Results),	write(Results), nl,	replace_each_existing_fact(id(Id,_),id(Id,num(Results))), extractExp(RightTree)),!	;  extractExp(RightTree).
 
 
 evaluteExp(Tree,Res) :- 
 	%Tree = (O,LL,RR),write(LL),nl, write(RR),nl;
-	Tree = num(Res); (Tree = id(V), traceID(V,Res));
-(	(Tree = (Op, num(X), num(Y))) ; 	(Tree = (Op, id(V), num(Y)), traceID(V,X)) ;	(Tree = (Op, num(X), id(V)), traceID(V,Y)); 	(Tree = (Op, id(V1), id(V2)),  traceID(V1,X),traceID(V2,Y))	),
+	Tree = num(Res); (Tree = id(V), traceID(V,Res)	);
+(
+	(Tree = (Op, num(X), num(Y))) ; 
+	(Tree = (Op, id(V), num(Y)), traceID(V,X)) ;
+	(Tree = (Op, num(X), id(V)), traceID(V,Y)); 
+	(Tree = (Op, id(V1), id(V2)),  traceID(V1,X),traceID(V2,Y)))	, Operate =.. [Op,X,Y] , Res is Operate
 	
-	( applyRelational(Op,X,Y,Res);applyLogical(Op,X,Y,Res); applyArith(Op,X,Y,Res)) 
-	
-	.
+.
 
 
 evaluteExp((Op,LeftNode,RightNode),Res) :- 
 											
-evaluteExp(LeftNode, ResLeft),  evaluteExp(RightNode,ResRight),
+evaluteExp(LeftNode, ResLeft),  evaluteExp(RightNode,ResRight)	%))
+											, Operate =.. [Op,ResLeft,ResRight] , Res is Operate.
 
-( applyRelational(Op,ResLeft,ResRight,Res); applyLogical(Op,ResLeft,ResRight,Res);applyArith(Op,ResLeft,ResRight,Res)).
-
-
-applyRelational(Op,X,Y,Res) :- (is_equality_op(Op); is_relat_op(Op)), Operate =.. [Op,X,Y] ,	((call(Operate),		Res is 1)	;	Res is 0).
-								
-applyArith(Op,X,Y,Res) :-  \+is_logical_op(Op), Operate =.. [Op,X,Y] , Res is Operate .
-
-
-applyLogical(Op,X,Y,Res) :-    (is_one_or_zero(X,Y);	(write('Only 1 and 0 can be AND\\ORD'),nl,false)),	 is_logical_op(Op),	((Op == /\  ,		Res is /\(X,Y))		;	(Op == \/ , 	Res is \/(X,Y)	)).	% ; write('Only 1 and 0 can be AND\\ORD'),nl
-
-
-/*
-applyLogical(Op,X,Y,Res) :- is_one_or_zero(X,Y), 
-								(Op == /\  -> 
-									Res is /\(X,Y)
-									;
-									Res is \/(X,Y)
-								).
-
-
-applyLogical(Op,X,Y,Res) :- ((is_one_or_zero(X,Y) ,(Op == /\ )  ->  Res is /\(X,Y)
-																; 
-																((Op == \/ ,is_one_or_zero(X,Y) -> Res is \/(X,Y) ; fail)
-																; fail).*/
-								
 traceID(Id,FinalNum) :-  Id = num(FinalNum).
 traceID(Id,LinkIdOrEnd) :- call(id(Id,IntermediateLink)), traceID(IntermediateLink,LinkIdOrEnd).
 
@@ -167,19 +145,19 @@ dountilstop(Predicate,NewY) :-
 
 cond_expre(T) -->  and_expre(E1), or_rest(E1,T). 	 
 
-or_rest(E1,T) -->  [punct('|'),punct('|')],!, and_expre(E2),   {V  = (\/,E1,E2)}, or_rest(V,T).%
+or_rest(E1,T) -->  [punct('|'),punct('|')],!, and_expre(E2),   {is_one_or_zero(E1,E2), V is \/(E1,E2)}, or_rest(V,T).%
 or_rest(T,T) --> [].
 
 and_expre(T) --> equality_expre(E1), and_rest(E1,T).
-and_rest(E1,T) --> [punct(&),punct(&)], !, equality_expre(E2), {V  = (/\,E1,E2)}, and_rest(V,T).%
+and_rest(E1,T) --> [punct(&),punct(&)], !, equality_expre(E2), {is_one_or_zero(E1,E2), V is 	/\(E1,E2)}, and_rest(V,T).%
 and_rest(T,T) --> [].
 
 equality_expre(T) -->   relat_expre(E1), equality_rest(E1,T).   
-equality_rest(E1,T) --> equality_op(Op) ,!,  relat_expre(E2), {  V=(Op,E1,E2)}, equality_rest(V,T).
+equality_rest(E1,T) --> equality_op(Op) ,!,  relat_expre(E2), {  Tr  =..[Op,E1,E2], (call(Tr) -> V is 1; V is 0)}, equality_rest(V,T).
 equality_rest(T,T) --> [].
 
 relat_expre(T) --> atomic_texpre(E1), relat_rest(E1,T).%could handle sperately equalitly Ops.
-relat_rest(E1,T) -->  relat_op(Op) ,!, atomic_texpre(E2) , { V=(Op,E1,E2) },relat_rest(V,T).
+relat_rest(E1,T) -->  relat_op(Op) ,!, atomic_texpre(E2) , {Tr  =..[Op,E1,E2],( call(Tr) -> V is 1; V is 0 )},relat_rest(V,T).
 relat_rest(T,T) --> [].
 
 atomic_texpre(T) -->  arith_expre(T); [punct('(')], !, cond_expre(T), [punct(')')]    	.
@@ -193,12 +171,8 @@ equality_op(==)         --> [punct(=),punct(=)].%applicable to numbers and bools
 equality_op(\=)        --> [punct(!),punct(=)].%applicable to numbers and bools
 relat_op(>=)        --> [punct(>),punct(=)].%ONLY applicable to numbers
 relat_op(>)         --> [punct(>)].%ONLY applicable to numbers
-relat_op('=<')        -->  [punct(<),punct(=)].%ONLY applicable to numbers
+relat_op(=<)        -->  [punct(<),punct(=)].%ONLY applicable to numbers
 relat_op(<)         --> [punct(<)].%ONLY applicable to numbers
-
-is_equality_op((Op)) :- Op == '==' ; Op == '\\='  .
-is_relat_op((Op)):- Op == '>=' ; Op == '=<' ; Op == '>' ; Op == '<'.
-is_logical_op((Op)):- (Op == /\) ; (Op == \/).
 
 expre(N) --> multiplicative(N1), additive_rest(N1,N).%https://stackoverflow.com/questions/7543100/grammar-involving-braces
 

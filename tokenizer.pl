@@ -16,6 +16,7 @@ tokenize_file(/cmmExamples/example1.cmm', Tokens, [cased(true), spaces(false)]).
 
 %also works
 tokenize(`4 * 3 - 7 asdfdsf`, Tokens, [cased(true), spaces(false)]),Tokens = [A|T],functor(A,Name,NoOfParams),Name==number, arg(1,A,Int).
+tokenize(`4 * 3 - 7 asdfdsf`, Tokens, [cased(true), spaces(false)]),Tokens = [A|T],functor(BoundedVar,NameOfFunctor,NoOfParams),Name==number, arg(NthArgtoget,BoundedVar,BindsToTheArg).
 
 
 /*filter(_,[],[]).
@@ -210,8 +211,160 @@ while (val < 100) {
 
 (assign(id(number),  ((+), num(4), num(6)))
 
-
+(assign(id(number), num(4)), assign(id(eggs), num(6)), assign(id(total),  ((+), id(eggs), num(6)))
  T = (*,2,3), T =(Op,X,Y), Mul =.. [Op,X,Y], Ans is Mul.
+
+
+
+(E = num(X); E = id(X), call(id(X,Y))) -> Res is Y;true
+
+
+
+
+(E = id(V), call(id(V,D)) -> Res is D; true);
+	(E = (Op,id(V),num(Y)),call(id(V,X)); 
+	E = (Op, num(X), num(Y))-> Operate =.. [Op,X,Y] , Res is Operate; true),
+
+
+
+extractExp([]). 
+extractExp((LeftNode,RightTree)) :- 
+	write(LeftNode),nl, write(RightTree),nl,
+	(LeftNode = assign(_,E) -> 
+	( E = num(D) -> Res is D );
+	(E = id(V), call(id(V,D)) -> Res is D),
+	
+	write(Res),nl
+	%evaluteExp(E,Results),
+	%write(Results), nl
+	; true  )
+	, extractExp(RightTree),!.
+
+evaluteExp(Tree,Res) :- 
+	%Tree = (O,LL,RR),write(LL),nl, write(RR),nl;
+	Tree = num(Res); (Tree = id(V), call(id(V,num(Res))));
+(
+	(Tree = (Op, num(X), num(Y))) ; 
+	(Tree = (Op, id(V), num(Y)),  call(id(V,num(X)))) ;
+	(Tree = (Op, num(X), id(V)), call(id(V,num(Y)))); 
+	(Tree = (Op, id(V1), id(V2)), call(id(V1,num(X))),call(id(V2,num(Y)))))	, Operate =.. [Op,X,Y] , Res is Operate
+	
+.
+
+
+replace_existing_fact(OldVar, NewVar) :-
+    (   call(OldVar) 
+	-> retractall(OldVar),
+   assertz(NewVar);
+      assertz(NewVar)
+    ).%https://stackoverflow.com/questions/37871775/prolog-replace-fact-using-fact
+ 
+
+replace_existing_fact(OldVar, NewVar) :-
+       call(OldVar) ,
+	retract(OldVar),
+   assert(NewVar)
+   
+     .%https://stackoverflow.com/questions/37871775/prolog-replace-fact-using-fact
+ 
+ 
+extractExp([]). 
+extractExp((LeftNode,RightTree)) :-  									%( E = num(D) ;	(E = id(V), call(id(V,num(D))))), Res = D,	write(Res),nl)
+	(LeftNode = assign(id(Id),E) ->
+	evaluteExp(E,Results),	
+	write(Results), nl,
+	%write(Id), 
+	replace_each_existing_fact(id(Id,_),id(Id,num(Results)))		%replace_existing_fact(id(Id,_),id(X,num(Results)))
+	; true  )
+	, extractExp(RightTree),!.
+
+
+
+
+Sym = =<, Op =..[Sym, 4,5], call(Op). except for AND and OR
+
+
+
+V is /\(1,1)
+
+
+
+X=1,Y=1, V = /\(X,Y), V = (Op,X,Y).
+
+evaluteExp(Tree,Res) :- 
+	%Tree = (O,LL,RR),write(LL),nl, write(RR),nl;
+	(Tree = num(Res); (Tree = id(V), traceID(V,Res)));
+(
+	((Tree = (Op, num(X), num(Y))) ; 
+	(Tree = (Op, id(V), num(Y)), traceID(V,X)) ;
+	(Tree = (Op, num(X), id(V)), traceID(V,Y)); 
+	(Tree = (Op, id(V1), id(V2)),  traceID(V1,X),traceID(V2,Y))	),
+	
+	(is_logical_op(Op),is_one_or_zero(X,Y)) -> 
+								(Op == /\  -> 
+									Res is /\(X,Y)
+									;
+									Res is \/(X,Y)
+								)
+	;
+	Operate =.. [Op,X,Y] ,
+	(is_equality_op(Op); is_relat_op(Op) ) -> 
+								(call(Operate) ->
+									Res is 1
+									;
+									Res is 0
+								)
+	;
+	Res is Operate	).
+
+
+evaluteExp((Op,LeftNode,RightNode),Res) :- 
+											
+evaluteExp(LeftNode, ResLeft),  evaluteExp(RightNode,ResRight),
+ Operate =.. [Op,ResLeft,ResRight] , 
+		(is_logical_op(Op),is_one_or_zero(ResLeft,ResRight)) -> 
+								(Op == /\  -> 
+									Res is /\(ResLeft,ResRight)
+									;
+									Res is \/(ResLeft,ResRight)
+								)
+		;
+		
+((is_equality_op(Op); is_relat_op(Op)), call(Operate) -> Res is 1; Res is 0)
+										;											
+											Res is Operate.
+
+ (assign(id(number),  ((OR),
+							num(0), 	(AND), 
+												((=<), num(0), num(0)), 	num(1))), []),
+									
+
+evaluteExp(Tree,Res) :- 
+	%Tree = (O,LL,RR),write(LL),nl, write(RR),nl;
+	(Tree = num(Res); (Tree = id(V), traceID(V,Res)));
+(
+	(Tree = (Op, num(X), num(Y))) ; 
+	(Tree = (Op, id(V), num(Y)), traceID(V,X)) ;
+	(Tree = (Op, num(X), id(V)), traceID(V,Y)); 
+	(Tree = (Op, id(V1), id(V2)),  traceID(V1,X),traceID(V2,Y))),
+	Operate =.. [Op,X,Y] ,
+	(is_logical_op(Op), ((Op == /\ , Res is /\(X,Y))	; (Op == \/, Res is \/(X,Y))));
+		
+	((is_equality_op(Op); is_relat_op(Op) ), (call(Operate) ,Res is 1);	Res is 0);
+	Res is Operate.
+
+
+evaluteExp((Op,LeftNode,RightNode),Res) :- 
+											
+evaluteExp(LeftNode, ResLeft),  evaluteExp(RightNode,ResRight),
+		Operate =.. [Op,ResLeft,ResRight] ,
+		(is_logical_op(Op), (Op == /\ , Res is /\(ResLeft,ResRight))	;(Res is \/(ResLeft,ResRight)))	;
+		  
+		 ((is_equality_op(Op); is_relat_op(Op)), (call(Operate) , Res is 1) ; Res is 0)	;											
+		Res is Operate.
+
+
+
 
 
 
