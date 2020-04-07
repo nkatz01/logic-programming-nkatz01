@@ -211,6 +211,36 @@ while (val < 100) {
 
 (assign(id(number),  ((+), num(4), num(6)))
 
+ (assign(id(number), num(4)), if(((>=), ((-), ((+), num(4), (*), ((/), num(6), num(2)), num(12)), num(5)), num(35)),  (print(statements([num(1)])), []),  (print(statements([num(0)])), [])), [])
+
+?- if(((>=), ((-), ((+), num(4), (*), ((/), num(6), num(2)), num(12)), num(5)), num(35)),  (print(statements([num(1)])), []),  (print(statements([num(0)])), [])) = if(A,B,C).
+A =  ((>=), ((-), ((+), num(4), (*), ((/), num(6), num(2)), num(12)), num(5)), num(35)),
+B =  (print(statements([num(1)])), []),
+C =  (print(statements([num(0)])), []).
+
+?- (assign(id(low), id(mid)), []) = (A,B).A = assign(id(low), id(mid)),
+B = [].
+
+ (	assign(id(val), num(1)), while(	((<), id(val), num(10)),  (print(statements([id(val)])), assign(id(val),  ((+), id(val), num(1))), [])	)	
+ 
+ , [])
+
+ ( someStuffhappening, while(	((>=), ((-), id(high), id(low)), num(2)),  (assign(id(mid),  ((/), ((+), id(low), id(high)), num(2))), if(((=<), ((*), id(mid), id(mid)), id(n)),  (assign(id(low), id(mid)), []),  (assign(id(high), id(mid)), print(statements([id(low), id(high)])), [])), [])), 	print(statements([id(low)])), [])
+
+if { -> evaluatecondition (will be expression or already existing cond variable) -> makeSureResultIsOneOrZero -> DependingOnResult1Or0 -> callExtractExpression withEither Branch}.
+
+while { -> evaluatecondition -> makeSureResultIsOneOrZero -> DependingOnResult1Or0 -> callExtractExpressionAgainOnRightBranch or StopRecoursing
+
+?- print(statements([num(0)])) = print(A).
+A = statements([num(0)]).
+
+?- print(statements([num(0)])) = print(A), A = statements(B).
+A = statements([num(0)]),
+B = [num(0)]
+
+
+
+(if(((<), num(1), num(2)), print(statements([num(1)])), print(statements([num(0)]))), [])
 (assign(id(number), num(4)), assign(id(eggs), num(6)), assign(id(total),  ((+), id(eggs), num(6)))
  T = (*,2,3), T =(Op,X,Y), Mul =.. [Op,X,Y], Ans is Mul.
 

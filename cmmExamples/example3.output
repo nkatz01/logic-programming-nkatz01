@@ -6,3 +6,11 @@
 6 720
 7 5040 
 8 40320
+
+stop = 10
+i = 0
+while( i < stop){
+print i 
+i = i + 1
+}
+print i
