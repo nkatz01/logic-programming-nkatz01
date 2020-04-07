@@ -1,6 +1,5 @@
 :- dynamic id/2.
 :- use_module(library(tokenize)).
-:- use_module(library(apply)).
 :- use_module(library(pprint)).
 :- use_module(library(lists)).
 file('cmmExamples/example1.cmm').
@@ -8,7 +7,8 @@ file('cmmExamples/example2.cmm').
 file('cmmExamples/example3.cmm').
 file('cmmExamples/example4.cmm').
 file('cmmExamples/example5.cmm').
-my_tokenize_file :-   file(Link),    tokenize_file(Link, TokensContaminataed, [ cased(true)]),filterCtrlsAndDblSpaces(TokensContaminataed, Tokens), parse(Tokens, Ast,Rest) ,print(Rest), nl ,  extractExp(Ast),nl ,fail.
+
+my_tokenize_file :-   file(Link),    tokenize_file(Link, TokensContaminataed, [ cased(true)]),filterCtrlsAndDblSpaces(TokensContaminataed, Tokens), parse(Tokens, Ast,[]), extractExp(Ast),nl ,fail.
 
 are_identical(X, Y) :- %https://stackoverflow.com/questions/297996/prolog-filtering-a-list
     X == Y.
@@ -22,17 +22,6 @@ filterCtrlsAndDblSpaces(In, Out4) :- filterList(space(' '),In,Out1) , filterList
 
  
 
-my_tokenize(Str,Tokens):-
-tokenize(Str, TokensContaminataed,  [cased(true)]), filterCtrlsAndDblSpaces(TokensContaminataed,Tokens).
-
-%'number = 4 + 6 / 2 * 12 - 5 print number'; 'number = 4 + 6 / 2 * 12 - 5 eggs = number';'number = 4 if (4 + 6 / 2 * 12 - 5 >= 136) print 1 else print 0 print nuchem';'if (4 + 6 / 2 * 12 - 5 >= 35) print 1 else print 0 number = 4 print nuchem'
-%'dozen = 6 eggsneeded = 4 eggsbought = 6 sufficienteggs = eggsbought > dozen || eggsbought >= eggsneeded';'number = 1 || 1 && 1 && 0';'bool = 1 && 0 || 1 && 0';'number = 0 || 0 <= 0 && 1';'while (3 <= 4) { f = 5 * 6}'
-%'n = 500 low = 0 high = n + 1 while(high - low >= 2) { mid = (low + high) / 2 if (mid * mid <= n) low = mid else high = mid print low, high } print low'
-runDef1(Tokens,Ast,Rest) :- my_tokenize('n = 500 low = 0 high = n + 1 while(high - low >= 2) { mid = (low + high) / 2 if (mid * mid <= n) low = mid else high = mid print low, high } print low',Tokens) ,parse(Tokens, Ast,Rest) , extractExp(Ast) .%   , retractall(id(_,_))
-
- 
-%'if (1 < 2) print 1 else print 0 if (1 > 2) print 0 else print 1''divisor = 2 number = 4 + 6 / divisor * 12 - 5';'number = 4 + 6 / 2 * 12 - 5 eggs = number addingthem = eggs + number + 4 doubleit = addingthem * 2'
-%'if (1 > 2) { print 1 print 7} else { print 0 print 6}'
 parse(Tokens, Ast,Rest) :-
   phrase(pl_program(Ast),Tokens,Rest),!.
  
@@ -50,7 +39,7 @@ statement(if(T,S))     --> [word(if)], [punct('(')], cond_expre(T), [punct(')')]
 statement(while(T,S))  --> [word('while')] -> [punct('(')] -> cond_expre(T) -> [punct(')')] ->  compound(S)  .
 statement(print(statements(S)))  --> [word(print)] -> statement(W),  {flatten(W,S)}.						 	
 statement([W|Ww]) --> pl_constant(W) ->  [punct(,)] , statement(Ww). 
-statement(W) --> pl_constant(W),  statement. %{W \= 'while'}, 
+statement(W) --> pl_constant(W),  statement.  
 statement --> [].
 compound(S) --> [punct('{')], rest_statements(S), [punct('}')].
 
@@ -91,8 +80,8 @@ extractExp((LeftNode,RightTree)) :-
 	(LeftNode = print(statements(List)) , printStatements(List),  extractExp(RightTree)),!; 
 	 (LeftNode = if(T,S1,S2), evaluteExp(T,Results) , ((Results == 1, extractExp(S1));	(Results == 0, extractExp(S2))), extractExp(RightTree)),!;
 	 (LeftNode = if(T,S), evaluteExp(T,Results), ((Results == 1, extractExp(S)); (Results == 0)), extractExp(RightTree)),!;
-	 (LeftNode = while(T,S), evaluteExp(T,Results),  (	(Results == 1, extractExp(S),  extractExp((LeftNode,RightTree)))	; ( extractExp(RightTree) ) )	)	.%	,!;
-	%extractExp(RightTree).
+	 (LeftNode = while(T,S), evaluteExp(T,Results),  (	(Results == 1, extractExp(S),  extractExp((LeftNode,RightTree)))	; ( extractExp(RightTree) ) )	)	.
+ 
 
 
 evaluteExp(Tree,Res) :- 
@@ -127,67 +116,20 @@ printStatements([Head|Tail]) :-
    printStatements(Tail).
    
    
-/*
-applyLogical(Op,X,Y,Res) :- is_one_or_zero(X,Y), 
-								(Op == /\  -> 
-									Res is /\(X,Y)
-									;
-									Res is \/(X,Y)
-								).
 
-
-applyLogical(Op,X,Y,Res) :- ((is_one_or_zero(X,Y) ,(Op == /\ )  ->  Res is /\(X,Y)
-																; 
-																((Op == \/ ,is_one_or_zero(X,Y) -> Res is \/(X,Y) ; fail)
-																; fail).*/
 								
 traceID(Id,FinalNum) :-  Id = num(FinalNum).
 traceID(Id,LinkIdOrEnd) :- call(id(Id,IntermediateLink)), traceID(IntermediateLink,LinkIdOrEnd).
 
-/*
-%callExtract(ProgAst,InnerAsts,ConvertedToLsExprs):- ProgAst =.. [H|InnerAsts],  extractTree(InnerAsts,ConvertedToLsExprs).
-
-extractTree([],[]). 
-extractTree((LeftNode,RightTree)) :- 
-
-LeftNode = while(T,S), (
-	call(id(Predicate,Y)),
-  ( Y = 1, !
-   ;
-   retract(id(X,Y),
-   assertz(id(X,NewY),
-
-) ,!; .
-extractTree((LeftNode,RightTree)) 
-
-processNode((LeftNode,RightNode)) :-
-
-
-
-%LeftNode = if(T,S1,S2), ,!; .
-
-
-
-
-dountilstop(Predicate,NewY) :-
-  repeat,
-	call(id(Predicate,Y)),
-  ( Y = 1, !
-   ;
-   retract(id(X,Y),
-   assertz(id(X,NewY),
-   fail
-  ).
-*/
 
 
 cond_expre(T) -->  and_expre(E1), or_rest(E1,T). 	 
 
-or_rest(E1,T) -->  [punct('|'),punct('|')],!, and_expre(E2),   {V  = (\/,E1,E2)}, or_rest(V,T).%
+or_rest(E1,T) -->  [punct('|'),punct('|')],!, and_expre(E2),   {V  = (\/,E1,E2)}, or_rest(V,T).
 or_rest(T,T) --> [].
 
 and_expre(T) --> equality_expre(E1), and_rest(E1,T).
-and_rest(E1,T) --> [punct(&),punct(&)], !, equality_expre(E2), {V  = (/\,E1,E2)}, and_rest(V,T).%
+and_rest(E1,T) --> [punct(&),punct(&)], !, equality_expre(E2), {V  = (/\,E1,E2)}, and_rest(V,T).
 and_rest(T,T) --> [].
 
 equality_expre(T) -->   relat_expre(E1), equality_rest(E1,T).   
@@ -232,21 +174,6 @@ atomic(N) --> [punct('(')], !, expre(N), [punct(')')];  num(N).
 num(N) --> pl_constant(N).
 
 
-%logical_op('||')        -->  [punct('|'),punct('|')].%NOT applicable to numbers
-%logical_op('&&')        -->  [punct(&),punct(&)].%NOT applicable to numbers
 
-
-
-
-
-/*
-runEval(Tokens,Ast,RestOfTokens,ExprLs,Results,RestOfEval) :- runDef1(Tokens,Ast,RestOfTokens) ,
-myeval(Ast,NestLs),
-flatten(NestLs,ExprLs),  
-phrase(expre(Results), ExprLs,RestOfEval).
-
-myeval(expr(Op,number(N1),number(N2)),[N1,Op, N2]).
-myeval(expr(Op,number(N),Expr),Ans) :-  Ans = [N,Op, Ls], myeval(Expr,Ls).
-*/
 
 
