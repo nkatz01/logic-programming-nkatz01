@@ -49,8 +49,8 @@ rest_statements([])  --> [].
 
 
 
-pl_constant(num(N))     --> pl_integer(N), !. %Moved up with cut to avoid numbers appearing as name('1')
-pl_constant(id(X))       --> identifier(X), {call(id(X,_)) /*; write('Sorry, you\'re using unknown variable'),nl)*/}.
+pl_constant(num(N))     --> pl_integer(N), !.
+pl_constant(id(X))       --> identifier(X), {call(id(X,_)) }.
 
 pl_integer(X)              --> [number(X)].
 identifier(X)              --> [word(X)].
@@ -58,22 +58,20 @@ identifier(X)              --> [word(X)].
 onlyAssignOrPrint(S) :- \+(S == if(_,_,_); S == while(_,_)).
 
 assertThisFact(Fact):- %https://stackoverflow.com/questions/10437395/prolog-how-to-assert-make-a-database-only-once
-    \+( Fact ),!,         % \+ is a NOT operator.
+    \+( Fact ),!,         
     assert(Fact).
 assertThisFact(_).
 
 
-replace_each_existing_fact(OldVar, NewVar) :-
+replace_each_existing_fact(OldVar, NewVar) :-%https://stackoverflow.com/questions/37871775/prolog-replace-fact-using-fact
 forall(replace_existing_fact(OldVar, NewVar), true).
 
 replace_existing_fact(OldVar, NewVar) :-
        call(OldVar) ,
 	retract(OldVar),
-   assert(NewVar)
-   
-     .%https://stackoverflow.com/questions/37871775/prolog-replace-fact-using-fact
+   assert(NewVar).
  
-%\+var(Results),write(Results), tab(1),write('is gen'), nl,	 
+	 
 extractExp([]). 
 extractExp((LeftNode,RightTree)) :-  								 
 	(LeftNode = assign(id(Id),E),	evaluteExp(E,Results1), 	Results is floor(Results1),    replace_each_existing_fact(id(Id,_),id(Id,num(Results))), extractExp(RightTree)),!;
@@ -136,7 +134,7 @@ equality_expre(T) -->   relat_expre(E1), equality_rest(E1,T).
 equality_rest(E1,T) --> equality_op(Op) ,!,  relat_expre(E2), {  V=(Op,E1,E2)}, equality_rest(V,T).
 equality_rest(T,T) --> [].
 
-relat_expre(T) --> atomic_texpre(E1), relat_rest(E1,T).%could handle sperately equalitly Ops.
+relat_expre(T) --> atomic_texpre(E1), relat_rest(E1,T). 
 relat_rest(E1,T) -->  relat_op(Op) ,!, atomic_texpre(E2) , { V=(Op,E1,E2) },relat_rest(V,T).
 relat_rest(T,T) --> [].
 
@@ -147,12 +145,12 @@ is_one_or_zero(E1,E2) :- (E1 == 1 ,E2 == 0);(E1 == 0, E2 == 1);(E1 == 1 ,E2 == 1
 opening_paren('(') --> [punct('(')].
 closing_paren(')') --> [punct(')')].
 
-equality_op(==)         --> [punct(=),punct(=)].%applicable to numbers and bools
-equality_op(\=)        --> [punct(!),punct(=)].%applicable to numbers and bools
-relat_op(>=)        --> [punct(>),punct(=)].%ONLY applicable to numbers
-relat_op(>)         --> [punct(>)].%ONLY applicable to numbers
-relat_op('=<')        -->  [punct(<),punct(=)].%ONLY applicable to numbers
-relat_op(<)         --> [punct(<)].%ONLY applicable to numbers
+equality_op(==)         --> [punct(=),punct(=)]. 
+equality_op(\=)        --> [punct(!),punct(=)]. 
+relat_op(>=)        --> [punct(>),punct(=)]. 
+relat_op(>)         --> [punct(>)]. 
+relat_op('=<')        -->  [punct(<),punct(=)]. 
+relat_op(<)         --> [punct(<)]. 
 
 is_equality_op((Op)) :- Op == '==' ; Op == '\\='  .
 is_relat_op((Op)):- Op == '>=' ; Op == '=<' ; Op == '>' ; Op == '<'.
