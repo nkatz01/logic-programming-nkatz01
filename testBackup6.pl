@@ -8,7 +8,7 @@ file('cmmExamples/example2.cmm').
 file('cmmExamples/example3.cmm').
 file('cmmExamples/example4.cmm').
 file('cmmExamples/example5.cmm').
-my_tokenize_file :-   file(Link),    tokenize_file(Link, TokensContaminataed, [ cased(true)]),filterCtrlsAndDblSpaces(TokensContaminataed, Tokens), parse(Tokens, Ast,Rest) ,print(Rest), nl ,  extractExp(Ast),nl ,fail.
+my_tokenize_file :-   file(Link),    tokenize_file(Link, TokensContaminataed, [ cased(true)]),filterCtrlsAndDblSpaces(TokensContaminataed, Tokens), parse(Tokens, Ast,Rest) ,print(Rest), nl ,extractExp(Ast),nl ,fail.
 
 are_identical(X, Y) :- %https://stackoverflow.com/questions/297996/prolog-filtering-a-list
     X == Y.
@@ -28,11 +28,9 @@ tokenize(Str, TokensContaminataed,  [cased(true)]), filterCtrlsAndDblSpaces(Toke
 %'number = 4 + 6 / 2 * 12 - 5 print number'; 'number = 4 + 6 / 2 * 12 - 5 eggs = number';'number = 4 if (4 + 6 / 2 * 12 - 5 >= 136) print 1 else print 0 print nuchem';'if (4 + 6 / 2 * 12 - 5 >= 35) print 1 else print 0 number = 4 print nuchem'
 %'dozen = 6 eggsneeded = 4 eggsbought = 6 sufficienteggs = eggsbought > dozen || eggsbought >= eggsneeded';'number = 1 || 1 && 1 && 0';'bool = 1 && 0 || 1 && 0';'number = 0 || 0 <= 0 && 1';'while (3 <= 4) { f = 5 * 6}'
 %'n = 500 low = 0 high = n + 1 while(high - low >= 2) { mid = (low + high) / 2 if (mid * mid <= n) low = mid else high = mid print low, high } print low'
-runDef1(Tokens,Ast,Rest) :- my_tokenize('n = 500 low = 0 high = n + 1 while(high - low >= 2) { mid = (low + high) / 2 if (mid * mid <= n) low = mid else high = mid print low, high } print low',Tokens) ,parse(Tokens, Ast,Rest) , extractExp(Ast) .%   , retractall(id(_,_))
-
- 
+runDef1(Tokens,Ast,Rest) :- my_tokenize('if (1 < 2) print 1 0',Tokens) ,parse(Tokens, Ast,Rest)  , extractExp(Ast)   .%, retractall(id(_,_))
+%runPhar(Tokens,Ast,Rest) :- my_tokenize('(12+ 4)/6',Tokens),parse(Tokens, Ast,Rest) .
 %'if (1 < 2) print 1 else print 0 if (1 > 2) print 0 else print 1''divisor = 2 number = 4 + 6 / divisor * 12 - 5';'number = 4 + 6 / 2 * 12 - 5 eggs = number addingthem = eggs + number + 4 doubleit = addingthem * 2'
-%'if (1 > 2) { print 1 print 7} else { print 0 print 6}'
 parse(Tokens, Ast,Rest) :-
   phrase(pl_program(Ast),Tokens,Rest),!.
  
@@ -42,17 +40,17 @@ pl_program(Ss)   --> rest_statements(Ss). %https://swish.swi-prolog.org/p/Compil
 statement(assign(id(X), E)) --> identifier(X), {X \= 'print', X \= 'if', X \= 'while'},    [punct(=)] -> cond_expre(E), {  assertThisFact(id(X,_)) }.
 
 
-statement(if(T,S1,S2))     --> [word(if)], [punct('(')], cond_expre(T), [punct(')')],(	(compound(S1), [word(else)], compound(S2)),!; (statement(_S1), {onlyAssignOrPrint(_S1), S1 = (_S1,[])}, [word(else)], statement(_S2),{onlyAssignOrPrint(_S2), S2 = (_S2, [])})).
+statement(if(T,(S1,[]),(S2,[])))     --> [word(if)], [punct('(')], cond_expre(T), [punct(')')], statement(S1), [word(else)], statement(S2).
 
-statement(if(T,S))     --> [word(if)], [punct('(')], cond_expre(T), [punct(')')], ( compound(S),!; (statement(_S) ,{onlyAssignOrPrint(_S), S = (_S,[])})).
+%statement(if(T,(S,[])))     --> [word(if)], [punct('(')], cond_expre(T), [punct(')')], statement(S).%, {\+(S == print(statement(S)); S == while(T,S))}
 
 
-statement(while(T,S))  --> [word('while')] -> [punct('(')] -> cond_expre(T) -> [punct(')')] ->  compound(S)  .
+statement(while(T,S))  --> [word('while')] -> [punct('(')] -> cond_expre(T) -> [punct(')')] -> [punct('{')], rest_statements(S), [punct('}')]  .
 statement(print(statements(S)))  --> [word(print)] -> statement(W),  {flatten(W,S)}.						 	
 statement([W|Ww]) --> pl_constant(W) ->  [punct(,)] , statement(Ww). 
 statement(W) --> pl_constant(W),  statement. %{W \= 'while'}, 
 statement --> [].
-compound(S) --> [punct('{')], rest_statements(S), [punct('}')].
+
 
 
 rest_statements((S, Ss))    -->   statement(S), rest_statements(Ss).
@@ -65,8 +63,6 @@ pl_constant(id(X))       --> identifier(X), {call(id(X,_)) /*; write('Sorry, you
 
 pl_integer(X)              --> [number(X)].
 identifier(X)              --> [word(X)].
-
-onlyAssignOrPrint(S) :- \+(S == if(_,_,_); S == while(_,_)).
 
 assertThisFact(Fact):- %https://stackoverflow.com/questions/10437395/prolog-how-to-assert-make-a-database-only-once
     \+( Fact ),!,         % \+ is a NOT operator.
@@ -90,7 +86,6 @@ extractExp((LeftNode,RightTree)) :-
 	(LeftNode = assign(id(Id),E),	evaluteExp(E,Results1), 	Results is floor(Results1),    replace_each_existing_fact(id(Id,_),id(Id,num(Results))), extractExp(RightTree)),!;
 	(LeftNode = print(statements(List)) , printStatements(List),  extractExp(RightTree)),!; 
 	 (LeftNode = if(T,S1,S2), evaluteExp(T,Results) , ((Results == 1, extractExp(S1));	(Results == 0, extractExp(S2))), extractExp(RightTree)),!;
-	 (LeftNode = if(T,S), evaluteExp(T,Results), ((Results == 1, extractExp(S)); (Results == 0)), extractExp(RightTree)),!;
 	 (LeftNode = while(T,S), evaluteExp(T,Results),  (	(Results == 1, extractExp(S),  extractExp((LeftNode,RightTree)))	; ( extractExp(RightTree) ) )	)	.%	,!;
 	%extractExp(RightTree).
 
